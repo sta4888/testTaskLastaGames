@@ -1,0 +1,56 @@
+version: "3.9"
+
+networks:
+  lesta-games:
+
+services:
+  # сервис приложения FastAPI
+  lesta-games-app:
+    build: .
+    container_name: lesta-games-app
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./src:/src
+      - ./docs:/docs
+    env_file:
+      - .env
+#    depends_on:
+#      lesta-games-db:
+#        condition: service_healthy
+    networks:
+      - lesta-games
+
+#  # сервис СУБД PostgreSQL
+#  lesta-games-db:
+#    image: postgres:15-alpine
+#    container_name: lesta-games-db
+#    environment:
+#      - POSTGRES_DB=${POSTGRES_DB}
+#      - POSTGRES_USER=${POSTGRES_USER}
+#      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+#    ports:
+#      - "54320:5432"
+#    # https://docs.docker.com/compose/compose-file/compose-file-v3/#healthcheck
+#    healthcheck:
+#      # https://www.postgresql.org/docs/current/app-pg-isready.html
+#      test: ["CMD-SHELL", "sh -c 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}'"]
+#      interval: 10s
+#      timeout: 5s
+#      retries: 5
+#    networks:
+#      - lesta-games
+#
+#
+#  lesta-games-pgadmin:
+#    image: dpage/pgadmin4
+#    container_name: lesta-games-pg
+#    restart: always
+#    ports:
+#      - "8888:80"
+#    environment:
+#      PGADMIN_DEFAULT_EMAIL: root@root.ru
+#      PGADMIN_DEFAULT_PASSWORD: root
+#    networks:
+#      - lesta-games
