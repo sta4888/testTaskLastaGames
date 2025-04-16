@@ -14,7 +14,7 @@ from tasks import process_file_task
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 
-UPLOAD_DIR = "uploaded_files"
+UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 

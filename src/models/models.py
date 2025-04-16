@@ -1,8 +1,7 @@
 from sqlalchemy import Column, Integer, String, JSON, DateTime
-from sqlalchemy.ext.declarative import declarative_base
 from datetime import datetime
 
-Base = declarative_base()
+from models.database import Base
 
 
 class ProcessedFile(Base):

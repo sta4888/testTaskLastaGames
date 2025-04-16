@@ -1,5 +1,7 @@
 from celery import Celery
 
+
+# Здесь тоже нужно поправить
 app = Celery(
     'tasks',
     broker='redis://lesta-redis:6379/0',

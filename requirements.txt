@@ -3,3 +3,4 @@ celery[redis]
 sqlalchemy
 alembic
 psycopg2-binary
+python-dotenv

@@ -1,15 +1,19 @@
 version: "3.9"
 
 services:
+
+  # контейнер основного приложения
   lesta-app:
     build: .
-    container_name: lesta-fastapi
+    container_name: ${APP_CONTAINER_NAME}
     command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
     ports:
-      - "8000:8000"
+      - "${APP_PORT:-8000}:8000"
     volumes:
       - ./src:/src
       - ./docs:/docs
+    env_file:
+      - .env
     depends_on:
       lesta-db:
         condition: service_healthy
@@ -17,16 +21,16 @@ services:
     networks:
       - lesta
 
-
+  # контейнер БД Postgres
   lesta-db:
     image: postgres:15-alpine
-    container_name: lesta-db
+    container_name: ${POSTGRES_CONTAINER_NAME}
     environment:
       - POSTGRES_DB=${POSTGRES_DB}
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     ports:
-      - "54320:5432"
+      - "${POSTGRES_PORT:-54320}:5432"
     # https://docs.docker.com/compose/compose-file/compose-file-v3/#healthcheck
     healthcheck:
       # https://www.postgresql.org/docs/current/app-pg-isready.html
@@ -37,22 +41,23 @@ services:
     networks:
       - lesta
 
-
+  # контейнер PGAdmin
   lesta-pgadmin:
     image: dpage/pgadmin4
-    container_name: lesta-pg
+    container_name: ${PGADMIN_CONTAINER_NAME}
     restart: always
     ports:
-      - "8888:80"
+      - "${PGADMIN_PORT:-8888}:80"
     environment:
-      PGADMIN_DEFAULT_EMAIL: root@root.ru
-      PGADMIN_DEFAULT_PASSWORD: root
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
     networks:
       - lesta
 
+  # контейнер Celery
   lesta-worker:
     build: .
-    container_name: lesta-celery-worker
+    container_name: ${CELERY_CONTAINER_NAME}
     command: celery -A worker.app worker --loglevel=info
     volumes:
       - ./src:/src
@@ -61,11 +66,12 @@ services:
     networks:
       - lesta
 
+  # контейнер Redis
   lesta-redis:
     image: redis:7
-    container_name: lesta-redis
+    container_name: ${REDIS_CONTAINER_NAME}
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT:-6379}:6379"
     networks:
       - lesta
 
