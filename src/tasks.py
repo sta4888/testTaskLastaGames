@@ -1,5 +1,4 @@
-
-
+from dfidf import Df_Idf
 from models.database import SessionLocal
 from models.models import ProcessedFile
 from worker import app
@@ -8,7 +7,6 @@ from worker import app
 @app.task
 def process_file_task(file_path: str, file_id: str) -> dict:
     try:
-        # Пример обработки файла
         with open(file_path, 'r', encoding='utf-8') as f:
             lines = f.readlines()
 
@@ -19,7 +17,6 @@ def process_file_task(file_path: str, file_id: str) -> dict:
             "processing_status": "completed"
         }
 
-        # Сохраняем результат в базу данных
         db = SessionLocal()
         processed_file = ProcessedFile(
             file_id=file_id,
@@ -30,6 +27,11 @@ def process_file_task(file_path: str, file_id: str) -> dict:
         db.add(processed_file)
         db.commit()
         db.refresh(processed_file)
+
+        df_idf = Df_Idf(file_path=file_path, file_id=file_id, db=db)
+
+        df_idf.save_to_db(processed_file.id)
+
         db.close()
 
         return result
@@ -39,6 +41,7 @@ def process_file_task(file_path: str, file_id: str) -> dict:
         processed_file = ProcessedFile(
             file_id=file_id,
             error=str(e),
+            file_path=file_path,
             status="failed"
         )
         db.add(processed_file)

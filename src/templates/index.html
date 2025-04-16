@@ -2,13 +2,90 @@
 <html>
 <head>
     <title>Загрузка файла</title>
+    <style>
+        #progress-container {
+            display: none;
+            margin-top: 20px;
+        }
+        #progress-bar {
+            width: 0%;
+            height: 20px;
+            background-color: #4caf50;
+            transition: width 0.3s;
+        }
+        #progress-text {
+            margin-top: 10px;
+        }
+    </style>
 </head>
 <body>
     <h2>Загрузите текстовый файл</h2>
-    <form action="/upload" method="post" enctype="multipart/form-data">
+    <form id="upload-form" enctype="multipart/form-data">
         <input type="file" name="file" accept=".txt" required>
         <button type="submit">Загрузить</button>
     </form>
 
+    <div id="progress-container">
+        <div id="progress-bar"></div>
+        <p id="progress-text">Ожидание...</p>
+    </div>
+
+    <script>
+        const form = document.getElementById("upload-form");
+        const progressContainer = document.getElementById("progress-container");
+        const progressBar = document.getElementById("progress-bar");
+        const progressText = document.getElementById("progress-text");
+
+        form.addEventListener("submit", async function (e) {
+            e.preventDefault();
+
+            const fileInput = form.querySelector('input[type="file"]');
+            const file = fileInput.files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append("file", file);
+
+            progressContainer.style.display = "block";
+            progressText.textContent = "Файл загружается...";
+
+            try {
+                const uploadRes = await fetch("/upload/", {
+                    method: "POST",
+                    body: formData
+                });
+                const uploadData = await uploadRes.json();
+
+                const taskId = uploadData.task_id;
+                const fileId = uploadData.file_id;
+
+                checkStatus(taskId, fileId);
+            } catch (err) {
+                console.error(err);
+                progressText.textContent = "Ошибка загрузки";
+            }
+        });
+
+        async function checkStatus(taskId, fileId) {
+            const interval = setInterval(async () => {
+                const res = await fetch(`/status/${taskId}`);
+                const data = await res.json();
+
+                if (data.status === "PENDING" || data.status === "STARTED") {
+                    progressText.textContent = `Статус: ${data.status}`;
+                    progressBar.style.width = data.status === "STARTED" ? "50%" : "20%";
+                } else {
+                    clearInterval(interval);
+                    if (data.status === "SUCCESS") {
+                        progressBar.style.width = "100%";
+                        progressText.textContent = "Обработка завершена!";
+                        window.location.href = `/results/${fileId}`;
+                    } else {
+                        progressText.textContent = "Произошла ошибка при обработке файла.";
+                    }
+                }
+            }, 1500);
+        }
+    </script>
 </body>
 </html>
