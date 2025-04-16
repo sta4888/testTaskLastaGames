@@ -57,7 +57,7 @@ services:
   lesta-games-celery:
     build: .
     container_name: ${CELERY_CONTAINER_NAME}
-    command: celery -A src.worker worker --loglevel=info
+    command: celery -A worker worker --loglevel=info
     volumes:
       - ./src:/src
     env_file:

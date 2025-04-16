@@ -12,4 +12,5 @@ class ProcessedFile(Base):
     result = Column(JSON)
     error = Column(String)
     status = Column(String)
+    file_path = Column(String)
     created_at = Column(DateTime, default=datetime.utcnow)

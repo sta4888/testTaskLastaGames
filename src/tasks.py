@@ -1,4 +1,4 @@
-from celery import shared_task
+
 
 from models.database import SessionLocal
 from models.models import ProcessedFile
@@ -7,7 +7,6 @@ from worker import app
 
 @app.task
 def process_file_task(file_path: str, file_id: str) -> dict:
-    print(3333333333333333333333333333333)
     try:
         # Пример обработки файла
         with open(file_path, 'r', encoding='utf-8') as f:
@@ -25,6 +24,7 @@ def process_file_task(file_path: str, file_id: str) -> dict:
         processed_file = ProcessedFile(
             file_id=file_id,
             result=result,
+            file_path=file_path,
             status="completed"
         )
         db.add(processed_file)
