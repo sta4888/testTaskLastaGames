@@ -3,7 +3,8 @@ import uuid
 
 from fastapi import HTTPException
 
-from models.models import ProcessedFile
+from models.models import ProcessedFile, WordStat
+from schemas import ProcessedResultResponse, TermResponse
 from tasks import process_file_task
 
 UPLOAD_DIR = "uploads"
@@ -50,23 +51,46 @@ async def task_status(task):
         return {"status": task.state}
 
 
-async def get_result_def(db, file_id):
+async def get_result_def(db, file_id: str, page: int = 1, page_size: int = 50):
     """
-    Функция возврата результата обработки файла
+    Функция возврата результата обработки файла с дополнительными данными из WordStat
     :param db:
     :param file_id:
     :return:
     """
+
     processed_file = db.query(ProcessedFile).filter(ProcessedFile.file_id == file_id).first()
     if not processed_file:
         raise HTTPException(status_code=404, detail="File not found")
 
-    return {
-        "status": processed_file.status,
-        "result": processed_file.result,
-        "error": processed_file.error,
-        "created_at": processed_file.created_at
-    }
+    total_terms = db.query(WordStat).filter(WordStat.file_id == file_id).count()
+    total_pages = (total_terms + page_size - 1) // page_size
+
+    if page > total_pages or page < 1:
+        raise HTTPException(status_code=400, detail="Page out of range")
+
+    word_stats = db.query(WordStat).filter(WordStat.file_id == file_id).offset((page - 1) * page_size).limit(
+        page_size).all()
+
+    if not word_stats:
+        raise HTTPException(status_code=404, detail="WordStats not found")
+
+    terms = [
+        TermResponse(word=word_stat.term, tf=word_stat.tf, idf=word_stat.idf)
+        for word_stat in word_stats
+    ]
+
+    return ProcessedResultResponse(
+        status=processed_file.status,
+        result=processed_file.result,
+        error=processed_file.error,
+        created_at=processed_file.created_at,
+        terms=terms,
+        total_terms=total_terms,
+        page=page,
+        total_pages=total_pages
+    )
+
 
 async def delete_file_by_id(db, file_id):
     """
@@ -87,5 +111,3 @@ async def delete_file_by_id(db, file_id):
     db.commit()
 
     return {"status": "success", "message": "File deleted successfully"}
-
-

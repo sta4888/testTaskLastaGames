@@ -1,10 +1,11 @@
 from celery.result import AsyncResult
-from fastapi import FastAPI, Request, UploadFile, HTTPException, Depends
+from fastapi import FastAPI, Request, UploadFile, HTTPException, Depends, Query
 from fastapi.responses import HTMLResponse
 from sqlalchemy.orm import Session
 from starlette.templating import Jinja2Templates
 
 from models.database import get_db
+from schemas import ProcessedResultResponse
 from serialize import serialize_datetime
 from services import uploads_file, task_status, get_result_def, delete_file_by_id
 
@@ -31,15 +32,16 @@ async def get_task_status(task_id: str):
     return await task_status(task)
 
 
-@app.get("/result/{file_id}", response_class=HTMLResponse)
-async def get_result(file_id: str, request: Request, db: Session = Depends(get_db)):
+@app.get("/result/{file_id}", response_model=ProcessedResultResponse)
+async def get_result(
+        file_id: str,
+        page: int = Query(1, ge=1),
+        page_size: int = Query(50, le=100),
+        db: Session = Depends(get_db)
+):
     try:
-        result = await get_result_def(db, file_id)
-        serialized_result = serialize_datetime(result)
-        return templates.TemplateResponse("results.html", {
-            "request": request,
-            "result": serialized_result
-        })
+        # Передаем параметры пагинации в функцию получения данных
+        return await get_result_def(db, file_id, page, page_size)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

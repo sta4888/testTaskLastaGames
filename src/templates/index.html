@@ -7,85 +7,193 @@
             display: none;
             margin-top: 20px;
         }
+
         #progress-bar {
             width: 0%;
             height: 20px;
             background-color: #4caf50;
             transition: width 0.3s;
         }
+
         #progress-text {
             margin-top: 10px;
+        }
+
+        table {
+            margin-top: 20px;
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        th, td {
+            border: 1px solid #ccc;
+            padding: 8px;
+        }
+
+        #pagination {
+            margin-top: 10px;
+        }
+
+        #pagination button {
+            margin-right: 5px;
         }
     </style>
 </head>
 <body>
-    <h2>Загрузите текстовый файл</h2>
-    <form id="upload-form" enctype="multipart/form-data">
-        <input type="file" name="file" accept=".txt" required>
-        <button type="submit">Загрузить</button>
-    </form>
+<h2>Загрузите текстовый файл</h2>
+<form id="upload-form" enctype="multipart/form-data">
+    <input type="file" name="file" accept=".txt" required>
+    <button type="submit">Загрузить</button>
+</form>
 
-    <div id="progress-container">
-        <div id="progress-bar"></div>
-        <p id="progress-text">Ожидание...</p>
-    </div>
+<div id="progress-container">
+    <div id="progress-bar"></div>
+    <p id="progress-text">Ожидание...</p>
+</div>
 
-    <script>
-        const form = document.getElementById("upload-form");
-        const progressContainer = document.getElementById("progress-container");
-        const progressBar = document.getElementById("progress-bar");
-        const progressText = document.getElementById("progress-text");
+<div id="result-section" style="display: none;">
+    <h3>Результаты анализа</h3>
+    <table id="result-table">
+        <thead>
+        <tr>
+            <th>Слово</th>
+            <th>TF</th>
+            <th>IDF</th>
+        </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+    <div id="pagination">
+    <button id="prev-page-btn">Назад</button>
+    <span id="page-info"></span>
+    <button id="next-page-btn">Вперёд</button>
+</div>
 
-        form.addEventListener("submit", async function (e) {
-            e.preventDefault();
+</div>
+<script>
+    const form = document.getElementById("upload-form");
+    const progressContainer = document.getElementById("progress-container");
+    const progressBar = document.getElementById("progress-bar");
+    const progressText = document.getElementById("progress-text");
 
-            const fileInput = form.querySelector('input[type="file"]');
-            const file = fileInput.files[0];
-            if (!file) return;
+    const resultSection = document.getElementById("result-section");
+    const resultTableBody = document.querySelector("#result-table tbody");
+    const paginationContainer = document.getElementById("pagination");
 
-            const formData = new FormData();
-            formData.append("file", file);
+    const pageInfo = document.getElementById("page-info");
+    const prevPageBtn = document.getElementById("prev-page-btn");
+    const nextPageBtn = document.getElementById("next-page-btn");
 
-            progressContainer.style.display = "block";
-            progressText.textContent = "Файл загружается...";
+    let fileIdGlobal = null;
+    let currentPage = 1;
+    const pageSize = 50;
 
+    form.addEventListener("submit", async function (e) {
+        e.preventDefault();
+        const fileInput = form.querySelector('input[type="file"]');
+        const file = fileInput.files[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append("file", file);
+
+        progressContainer.style.display = "block";
+        progressText.textContent = "Файл загружается...";
+
+        try {
+            const uploadRes = await fetch("/upload/", {
+                method: "POST",
+                body: formData
+            });
+            const uploadData = await uploadRes.json();
+
+            const taskId = uploadData.task_id;
+            fileIdGlobal = uploadData.file_id;
+
+            checkStatus(taskId);
+        } catch (err) {
+            console.error(err);
+            progressText.textContent = "Ошибка загрузки";
+        }
+    });
+
+    async function checkStatus(taskId) {
+        const interval = setInterval(async () => {
             try {
-                const uploadRes = await fetch("/upload/", {
-                    method: "POST",
-                    body: formData
-                });
-                const uploadData = await uploadRes.json();
-
-                const taskId = uploadData.task_id;
-                const fileId = uploadData.file_id;
-
-                checkStatus(taskId, fileId);
-            } catch (err) {
-                console.error(err);
-                progressText.textContent = "Ошибка загрузки";
-            }
-        });
-
-        async function checkStatus(taskId, fileId) {
-            const interval = setInterval(async () => {
                 const res = await fetch(`/status/${taskId}`);
                 const data = await res.json();
 
-                if (data.status === "PENDING" || data.status === "STARTED") {
+                console.log("Статус задачи:", data);
+
+                if (["PENDING", "STARTED", "processing"].includes(data.status)) {
                     progressText.textContent = `Статус: ${data.status}`;
-                    progressBar.style.width = data.status === "STARTED" ? "50%" : "20%";
+                    progressBar.style.width = data.status === "STARTED" || data.status === "processing" ? "50%" : "20%";
                 } else {
                     clearInterval(interval);
-                    if (data.status === "SUCCESS") {
+                    if (["SUCCESS", "completed"].includes(data.status)) {
                         progressBar.style.width = "100%";
                         progressText.textContent = "Обработка завершена!";
-                        window.location.href = `/results/${fileId}`;
+                        loadResults(fileIdGlobal, 1); // Указываем первую страницу явно
                     } else {
                         progressText.textContent = "Произошла ошибка при обработке файла.";
                     }
                 }
-            }, 1500);
+
+            } catch (err) {
+                clearInterval(interval);
+                console.error("Ошибка запроса статуса:", err);
+                progressText.textContent = "Ошибка проверки статуса.";
+            }
+        }, 1500);
+    }
+
+    async function loadResults(fileId, page = 1) {
+        currentPage = page;
+        try {
+            const res = await fetch(`/result/${fileId}?page=${page}&page_size=${pageSize}`);
+
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(`Ошибка API: ${res.status} — ${JSON.stringify(errorData)}`);
+            }
+
+            const data = await res.json();
+            console.log("Результаты:", data);
+
+            resultTableBody.innerHTML = "";
+
+            data.terms.forEach(item => {
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                    <td>${item.word}</td>
+                    <td>${item.tf}</td>
+                    <td>${item.idf.toFixed(6)}</td>
+                `;
+                resultTableBody.appendChild(row);
+            });
+
+            resultSection.style.display = "block";
+            pageInfo.textContent = `Страница ${page}`;
+            prevPageBtn.disabled = page <= 1;
+            nextPageBtn.disabled = page >= data.total_pages;
+
+        } catch (err) {
+            console.error("Ошибка при загрузке результатов:", err);
+            progressText.textContent = "Произошла ошибка при загрузке результатов.";
         }
-    </script>
+    }
+
+    // Обработчики кнопок пагинации
+    prevPageBtn.addEventListener("click", () => {
+        if (currentPage > 1) {
+            loadResults(fileIdGlobal, currentPage - 1);
+        }
+    });
+
+    nextPageBtn.addEventListener("click", () => {
+        loadResults(fileIdGlobal, currentPage + 1);
+    });
+</script>
+
 </body>
 </html>
