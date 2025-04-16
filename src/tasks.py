@@ -1,11 +1,13 @@
 from celery import shared_task
-import os
-from database import SessionLocal
-from models import ProcessedFile
+
+from models.database import SessionLocal
+from models.models import ProcessedFile
+from worker import app
 
 
-@shared_task
+@app.task
 def process_file_task(file_path: str, file_id: str) -> dict:
+    print(3333333333333333333333333333333)
     try:
         # Пример обработки файла
         with open(file_path, 'r', encoding='utf-8') as f:

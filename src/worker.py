@@ -4,8 +4,8 @@ from celery import Celery
 # Здесь тоже нужно поправить
 app = Celery(
     'tasks',
-    broker='redis://lesta-redis:6379/0',
-    backend='redis://lesta-redis:6379/0'
+    broker='redis://lesta-games-redis:6379/0',
+    backend='redis://lesta-games-redis:6379/0'
 )
 
 app.conf.update(
@@ -15,3 +15,5 @@ app.conf.update(
     timezone='Europe/Moscow',
     enable_utc=True,
 )
+
+app.autodiscover_tasks(['tasks'])

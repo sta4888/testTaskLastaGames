@@ -7,8 +7,8 @@ from sqlalchemy.orm import Session
 from starlette.templating import Jinja2Templates
 import os
 
-from database import get_db
-from models import ProcessedFile
+from models.database import get_db, SQLALCHEMY_DATABASE_URL
+from models.models import ProcessedFile
 from tasks import process_file_task
 
 app = FastAPI()
@@ -20,13 +20,14 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)
 async def upload_form(request: Request):
+    print(f"SQLALCHEMY_DATABASE_URL {SQLALCHEMY_DATABASE_URL}")
     return templates.TemplateResponse("index.html", {"request": request})
 
 
 @app.post("/upload/")
 async def upload_file(file: UploadFile):
     try:
-        # Генерируем уникальный ID для файла
+        print(11111111111111111111111111111)
         file_id = str(uuid.uuid4())
         file_path = os.path.join(UPLOAD_DIR, f"{file_id}_{file.filename}")
 
@@ -35,8 +36,15 @@ async def upload_file(file: UploadFile):
             while content := await file.read(1024 * 1024):
                 buffer.write(content)
 
-        # Отправляем задачу в Celery
+        print(222222222222222222222)
+        assert isinstance(file_path, str)
+        assert isinstance(file_id, str)
+        print(type(file_id))
+        print(type(file_path))
+
+        print(f"Calling task with: {file_path}, {file_id}")
         task = process_file_task.delay(file_path, file_id)
+        print(f"Task ID: {task.id}")
 
         return {
             "file_id": file_id,

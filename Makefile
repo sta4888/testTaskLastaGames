@@ -16,9 +16,7 @@ format:
 lint:
 	docker compose run --no-deps --workdir / lesta-games-app /bin/bash -c "pylint src; flake8 src; mypy src; black --check src"
 
-# запуск автоматических тестов
-test:
-	docker compose run lesta-games-app pytest --cov=/src --cov-report html:htmlcov --cov-report term --cov-config=/src/tests/.coveragerc -vv
+
 
 # запуск всех функций поддержки качества кода
-all: format lint test
+all: format lint

@@ -3,7 +3,7 @@ version: "3.9"
 services:
 
   # контейнер основного приложения
-  lesta-app:
+  lesta-games-app:
     build: .
     container_name: ${APP_CONTAINER_NAME}
     command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
@@ -15,14 +15,13 @@ services:
     env_file:
       - .env
     depends_on:
-      lesta-db:
+      lesta-games-db:
         condition: service_healthy
-
     networks:
       - lesta
 
   # контейнер БД Postgres
-  lesta-db:
+  lesta-games-db:
     image: postgres:15-alpine
     container_name: ${POSTGRES_CONTAINER_NAME}
     environment:
@@ -42,7 +41,7 @@ services:
       - lesta
 
   # контейнер PGAdmin
-  lesta-pgadmin:
+  lesta-games-pg:
     image: dpage/pgadmin4
     container_name: ${PGADMIN_CONTAINER_NAME}
     restart: always
@@ -55,19 +54,24 @@ services:
       - lesta
 
   # контейнер Celery
-  lesta-worker:
+  lesta-games-celery:
     build: .
     container_name: ${CELERY_CONTAINER_NAME}
-    command: celery -A worker.app worker --loglevel=info
+    command: celery -A src.worker worker --loglevel=info
     volumes:
       - ./src:/src
+    env_file:
+      - .env
     depends_on:
-      - lesta-redis
+      lesta-games-db:
+        condition: service_healthy
+      lesta-games-redis:
+        condition: service_started
     networks:
       - lesta
 
   # контейнер Redis
-  lesta-redis:
+  lesta-games-redis:
     image: redis:7
     container_name: ${REDIS_CONTAINER_NAME}
     ports:
@@ -77,3 +81,4 @@ services:
 
 networks:
   lesta:
+    driver: bridge
