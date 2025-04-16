@@ -1,1 +1,5 @@
 fastapi[standard]
+celery[redis]
+sqlalchemy
+alembic
+psycopg2-binary
