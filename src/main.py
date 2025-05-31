@@ -8,8 +8,14 @@ from models.database import get_db
 from schemas import ProcessedResultResponse
 from serialize import serialize_datetime
 from services import uploads_file, task_status, get_result_def, delete_file_by_id
+from settings import settings
 
-app = FastAPI()
+app = FastAPI(
+    title=settings.project.title,
+    description=settings.project.description,
+    version=settings.project.release_version,
+    debug=settings.debug
+)
 templates = Jinja2Templates(directory="templates")
 
 
@@ -30,6 +36,16 @@ async def upload_file(file: UploadFile):
 async def get_task_status(task_id: str):
     task = AsyncResult(task_id)
     return await task_status(task)
+
+
+@app.get("/status", summary="Получить статуса приложения", response_model=dict)
+async def get_app_status():
+    return {"status": "OK"}
+
+
+@app.get("/version", summary="Получить версию приложения", response_model=dict)
+async def get_app_version():
+    return {"version": settings.project.release_version}
 
 
 @app.get("/result/{file_id}", response_model=ProcessedResultResponse)

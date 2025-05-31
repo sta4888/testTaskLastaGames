@@ -80,7 +80,7 @@ testTaskLastaGames/
 
 3. Для корректной работы приложения настройте базу данных. Примените миграции для создания таблиц в базе данных:
     ```shell
-    docker compose run table-reservation-app alembic upgrade head
+    docker compose run lesta-games-app alembic upgrade head
     ```
 
 4. Теперь можно запустить проект внутри Docker контейнера:
@@ -95,18 +95,18 @@ testTaskLastaGames/
 
 Для первоначальной настройки функционала миграций выполните команду:
 ```bash
-docker compose exec table-reservation-app alembic init -t async migrations
+docker compose exec lesta-games-app alembic init -t async migrations
 ```
 Эта команда создаст директорию с конфигурационными файлами для настройки функционала асинхронных миграций.
 
 Для создания новых миграций, которые обновят таблицы базы данных в соответствии с обновлёнными моделями, выполните команду:
 ```bash
-docker compose run table-reservation-app alembic revision --autogenerate  -m "your description"
+docker compose run lesta-games-app alembic revision --autogenerate  -m "your description"
 ```
 
 Чтобы применить созданные миграции, выполните:
 ```bash
-docker compose run table-reservation-app alembic upgrade head
+docker compose run lesta-games-app alembic upgrade head
 ```
 
 ### Автоматизированные команды
@@ -155,10 +155,22 @@ make docs-html
 [MIT](https://choosealicense.com/licenses/mit/)
 
 ## Changelog
+
+
+```
 README.md
 - Добавлено описание структуры проекта
 - Добавлено changelog
 - Добавлено версия приложения
 - Добавлено Описание всех конфигурируемых параметров
 
+routs
+- Добавил маршрут status - для проверки работоспособности приложения
+- Добавил маршрут version - для получения версии приложения
+- Добавил маршрут metrics - для отображения метрик приложения
+
+Приложение
+- настроил settings так как Pydantic поменял схему ипорта
+- добавил зависимость pydantic-settings
+```
 

@@ -1,7 +1,7 @@
 import os
 
-from pydantic import BaseModel, BaseSettings, Field, PostgresDsn
-
+from pydantic import BaseModel, Field, PostgresDsn
+from pydantic_settings import BaseSettings
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -19,7 +19,7 @@ class Project(BaseModel):
     #: описание проекта
     description: str = "Сервис tfidf ."
     #: версия релиза
-    release_version: str = Field(default="0.1.0")
+    release_version: str = os.getenv("PROJECT__RELEASE_VERSION")
 
 
 class Settings(BaseSettings):
