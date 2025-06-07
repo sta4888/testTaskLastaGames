@@ -5,3 +5,20 @@ alembic
 psycopg2-binary
 python-dotenv
 pydantic-settings
+
+# https://www.sphinx-doc.org/en/master/usage/quickstart.html
+sphinx
+
+# https://black.readthedocs.io/en/stable/getting_started.html
+black
+
+pylint
+
+# https://flake8.pycqa.org/en/latest/index.html#quickstart
+flake8
+
+# https://mypy.readthedocs.io/en/stable/getting_started.html
+mypy
+
+
+prometheus-fastapi-instrumentator

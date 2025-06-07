@@ -10,12 +10,15 @@ from serialize import serialize_datetime
 from services import uploads_file, task_status, get_result_def, delete_file_by_id
 from settings import settings
 
+from prometheus_fastapi_instrumentator import Instrumentator
+
 app = FastAPI(
     title=settings.project.title,
     description=settings.project.description,
     version=settings.project.release_version,
     debug=settings.debug
 )
+Instrumentator().instrument(app).expose(app)
 templates = Jinja2Templates(directory="templates")
 
 

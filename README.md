@@ -19,6 +19,10 @@ V 0.1.1
 testTaskLastaGames/
 │
 ├── docs/                     # Автосгенерированная документация проект
+├── prometheus_data/          # Директория для prometheus 
+│   └── FastAPIO.json         # Настройка для dashboard prometheus
+├── grafana_data/             # Директория для grafana
+│   └── prometheus.yml        # Настройка grafana
 ├── app/                      # проект
 │   ├── alembic/              # Директория с результатами миграций моделей 
 │   │   ├── versions/         # Директория с миграциями
@@ -167,10 +171,16 @@ README.md
 routs
 - Добавил маршрут status - для проверки работоспособности приложения
 - Добавил маршрут version - для получения версии приложения
-- Добавил маршрут metrics - для отображения метрик приложения
+- Добавил маршрут metrics - для отображения метрик приложения (prometheus)
 
 Приложение
 - настроил settings так как Pydantic поменял схему ипорта
 - добавил зависимость pydantic-settings
+- добавил зависимость prometheus-fastapi-instrumentator для работы с prometheus
+
+Контейнеры
+- добавлены контейнеры prometheus и grafana для сбора и отображения метрик прилодения
+
+
 ```
 
