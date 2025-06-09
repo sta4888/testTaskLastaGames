@@ -4,16 +4,22 @@ from fastapi import UploadFile, HTTPException, Depends, Query
 
 from sqlalchemy.orm import Session
 from models.database import get_db
-from schemas import ProcessedResultResponse
-from services import uploads_file, task_status, get_result_def, delete_file_by_id
+from models.models import User
+from schemas.schemas import ProcessedResultResponse
+from services.document import get_current_user
+from services.services import uploads_file, task_status, get_result_def, delete_file_by_id
 
 router = APIRouter()
 
 
 @router.post("/upload/")
-async def upload_file(file: UploadFile):
+async def upload_file(
+        file: UploadFile,
+        current_user: User = Depends(get_current_user),
+        db: Session = Depends(get_db)
+):
     try:
-        return await uploads_file(file)
+        return await uploads_file(file, current_user.id, db)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

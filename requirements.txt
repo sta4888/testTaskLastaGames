@@ -22,3 +22,6 @@ mypy
 
 
 prometheus-fastapi-instrumentator
+
+passlib[bcrypt]
+python-jose

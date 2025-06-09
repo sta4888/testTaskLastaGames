@@ -1,17 +1,19 @@
+import hashlib
 import os
 import uuid
 
 from fastapi import HTTPException
+from sqlalchemy.orm import Session
 
-from models.models import ProcessedFile, WordStat
-from schemas import ProcessedResultResponse, TermResponse
+from models.models import ProcessedFile, WordStat, Document
+from schemas.schemas import ProcessedResultResponse, TermResponse
 from tasks import process_file_task
 
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
-async def uploads_file(file):
+async def uploads_file(file, user_id: int, db: Session):
     """
     Функция загрузки и обработки файла
     :param file:
@@ -21,10 +23,26 @@ async def uploads_file(file):
     file_path = os.path.join(UPLOAD_DIR, f"{file_id}_{file.filename}")
 
     # Сохраняем файл
+    hash_md5 = hashlib.md5()
     with open(file_path, "wb") as buffer:
         while content := await file.read(1024 * 1024):
             buffer.write(content)
+            hash_md5.update(content)
 
+    file_hash = hash_md5.hexdigest()
+
+    # Сохраняем в БД как Document
+    document = Document(
+        filename=file.filename,
+        filepath=file_path,
+        file_hash=file_hash,
+        owner_id=user_id
+    )
+    db.add(document)
+    db.commit()
+    db.refresh(document)
+
+    # Запускаем Celery-задачу
     task = process_file_task.delay(file_path, file_id)
 
     return {

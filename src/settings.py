@@ -40,6 +40,10 @@ class Settings(BaseSettings):
         default=SQLALCHEMY_DATABASE_URL
     )
 
+    secret_key: str = Field(default=os.getenv("SECRET_KEY"))
+    algorithm: str = Field(default=os.getenv("ALGORITHM"))
+    access_token_expire_minutes: int = Field(default=os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES"))
+
     class Config:
         env_file = ".env"
         env_nested_delimiter = "__"
