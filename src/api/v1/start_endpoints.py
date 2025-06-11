@@ -6,8 +6,8 @@ from sqlalchemy.orm import Session
 from models.database import get_db
 from models.models import User
 from schemas.schemas import ProcessedResultResponse
-from services.document import get_current_user
 from services.services import uploads_file, task_status, get_result_def, delete_file_by_id
+from services.user import UserService
 
 router = APIRouter()
 
@@ -15,11 +15,10 @@ router = APIRouter()
 @router.post("/upload/")
 async def upload_file(
         file: UploadFile,
-        current_user: User = Depends(get_current_user),
-        db: Session = Depends(get_db)
+        current_user: User = Depends(UserService.get_current_user),
 ):
     try:
-        return await uploads_file(file, current_user.id, db)
+        return await uploads_file(file, current_user.id)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

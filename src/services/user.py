@@ -1,41 +1,48 @@
-from datetime import timedelta, datetime
-
-from jose import jwt, JWTError
-from passlib.context import CryptContext
+from fastapi import Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from models.database import get_db
+from repositories.user import UserRepository
+from utils.auth import verify_password, create_access_token, get_password_hash, oauth2_scheme, decode_token
+from typing import Optional
+from datetime import timedelta
+from settings import settings
 from models.models import User
 
-from settings import settings
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+class UserService:
+    def __init__(self, db: Session):
+        self.repo = UserRepository(db)
 
+    def authenticate_user(self, username: str, password: str) -> Optional[User]:
+        user = self.repo.get_by_username(username)
+        if not user or not verify_password(password, user.hashed_password):
+            return None
+        return user
 
-def get_password_hash(password):
-    return pwd_context.hash(password)
+    def generate_token_for_user(self, user: User) -> str:
+        token_data = {"sub": str(user.id)}
+        return create_access_token(token_data, timedelta(minutes=settings.access_token_expire_minutes))
 
+    def get_user_by_token(self, token: str) -> Optional[User]:
+        from utils.auth import decode_token
+        user_id = decode_token(token)
+        if user_id is None:
+            return None
+        return self.repo.get(int(user_id))
 
-def verify_password(plain_password, hashed_password):
-    return pwd_context.verify(plain_password, hashed_password)
+    def create_user(self, username: str, password: str) -> User:
+        hashed_pw = get_password_hash(password)
+        user = self.repo.create(username=username, hashed_password=hashed_pw)
+        return user
 
+    def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+        user_id = decode_token(token)
+        if not user_id:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
 
-def authenticate_user(db: Session, username: str, password: str):
-    user = db.query(User).filter(User.username == username).first()
-    if not user or not verify_password(password, user.hashed_password):
-        return False
-    return user
+        user = db.query(User).filter(User.id == int(user_id)).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        return user
 
-
-def create_access_token(data: dict, expires_delta: timedelta = None):
-    to_encode = data.copy()
-    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=settings.access_token_expire_minutes))
-    to_encode.update({"exp": expire})
-    return jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
-
-
-def decode_token(token: str):
-    try:
-        payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
-        return payload.get("sub")
-    except JWTError:
-        return None

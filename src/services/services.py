@@ -5,7 +5,7 @@ import uuid
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
-from models.models import ProcessedFile, WordStat, Document
+from models.models import ProcessedFile, WordStat
 from schemas.schemas import ProcessedResultResponse, TermResponse
 from tasks import process_file_task
 
@@ -13,12 +13,7 @@ UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
-async def uploads_file(file, user_id: int, db: Session):
-    """
-    Функция загрузки и обработки файла
-    :param file:
-    :return:
-    """
+async def uploads_file(file, user_id: int):
     file_id = str(uuid.uuid4())
     file_path = os.path.join(UPLOAD_DIR, f"{file_id}_{file.filename}")
 
@@ -30,26 +25,20 @@ async def uploads_file(file, user_id: int, db: Session):
             hash_md5.update(content)
 
     file_hash = hash_md5.hexdigest()
-
-    # Сохраняем в БД как Document
-    document = Document(
-        filename=file.filename,
-        filepath=file_path,
-        file_hash=file_hash,
-        owner_id=user_id
+    task = process_file_task.delay(
+        file_path,
+        file_id,
+        file_hash,
+        owner_id=user_id,
+        filename=file.filename
     )
-    db.add(document)
-    db.commit()
-    db.refresh(document)
-
-    # Запускаем Celery-задачу
-    task = process_file_task.delay(file_path, file_id)
 
     return {
         "file_id": file_id,
         "task_id": task.id,
         "status": "processing"
     }
+
 
 
 async def task_status(task):

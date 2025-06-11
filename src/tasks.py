@@ -1,11 +1,23 @@
 from dfidf import Df_Idf
+from repositories.processed_file import ProcessedFileRepository
 from models.database import SessionLocal
-from models.models import ProcessedFile
 from worker import app
 
+import time
 
 @app.task
-def process_file_task(file_path: str, file_id: str) -> dict:
+def process_file_task(
+        file_path: str,
+        file_id: str,
+        file_hash: str,
+        filename: str,
+        owner_id: int
+) -> dict:
+
+    start_time = time.time()
+    db = SessionLocal()
+    repo = ProcessedFileRepository(db)
+
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
             lines = f.readlines()
@@ -17,34 +29,37 @@ def process_file_task(file_path: str, file_id: str) -> dict:
             "processing_status": "completed"
         }
 
-        db = SessionLocal()
-        processed_file = ProcessedFile(
+        # Создаём запись через репозиторий
+        processed_file = repo.create(
             file_id=file_id,
             result=result,
             file_path=file_path,
-            status="completed"
+            status="completed",
+            filename=filename,
+            file_hash=file_hash,
+            owner_id=owner_id
         )
-        db.add(processed_file)
-        db.commit()
-        db.refresh(processed_file)
 
+        # Обработка TF-IDF и сохранение
         df_idf = Df_Idf(file_path=file_path, file_id=file_id, db=db)
-
         df_idf.save_to_db(processed_file.id)
 
-        db.close()
+        # Обновляем время обработки
+        time_elapsed = round(time.time() - start_time, 3)
+        repo.update(processed_file, {"time_processed": time_elapsed})
 
+        db.close()
         return result
 
     except Exception as e:
-        db = SessionLocal()
-        processed_file = ProcessedFile(
+        time_elapsed = round(time.time() - start_time, 3)
+        # В случае ошибки — тоже через репозиторий
+        repo.create(
             file_id=file_id,
             error=str(e),
             file_path=file_path,
-            status="failed"
+            status="failed",
+            time_processed=time_elapsed
         )
-        db.add(processed_file)
-        db.commit()
         db.close()
         return {"error": str(e), "status": "failed"}
