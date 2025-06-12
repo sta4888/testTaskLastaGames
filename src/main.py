@@ -21,8 +21,9 @@ app = FastAPI(
 )
 Instrumentator().instrument(app).expose(
     app,
-    endpoint="/api/v2/metrics",
-    tags=["start"]
+    endpoint="/metrics",
+    tags=["start"],
+    include_in_schema=False
 )
 
 templates = Jinja2Templates(directory="templates")

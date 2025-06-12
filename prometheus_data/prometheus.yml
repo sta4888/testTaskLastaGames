@@ -1,6 +1,4 @@
-# config file for prometheus
 
-# global config
 global:
   scrape_interval: 15s
   scrape_timeout: 10s
