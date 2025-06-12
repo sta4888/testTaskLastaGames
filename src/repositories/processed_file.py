@@ -12,3 +12,7 @@ class ProcessedFileRepository(BaseRepository[ProcessedFile]):
 
     def get_by_owner_id(self, owner_id: int):
         return self.db.query(self.model).filter(self.model.owner_id == owner_id).all()
+
+    def get_by_file_id(self, file_id: str):
+        return self.db.query(self.model).filter(self.model.file_id == file_id).first()
+

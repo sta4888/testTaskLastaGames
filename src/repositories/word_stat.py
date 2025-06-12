@@ -12,3 +12,16 @@ class WordStatRepository(BaseRepository[WordStat]):
 
     def get_by_file_id(self, file_id: str):
         return self.db.query(self.model).filter(self.model.file_id == file_id).all()
+
+    def count_by_file_id(self, file_id: str) -> int:
+        return self.db.query(self.model).filter(self.model.file_id == file_id).count()
+
+    def get_by_file_id_paginated(self, file_id: str, offset: int, limit: int):
+        return (
+            self.db.query(self.model)
+            .filter(self.model.file_id == file_id)
+            .offset(offset)
+            .limit(limit)
+            .all()
+        )
+

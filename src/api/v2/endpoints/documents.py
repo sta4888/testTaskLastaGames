@@ -4,7 +4,6 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from models.database import get_db
-from models.models import ProcessedFile
 from repositories.processed_file import ProcessedFileRepository
 from repositories.word_stat import WordStatRepository
 from schemas.document import DocumentListItem, DocumentResult, MessageResponse

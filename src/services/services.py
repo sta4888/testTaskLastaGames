@@ -3,9 +3,8 @@ import os
 import uuid
 
 from fastapi import HTTPException
-from sqlalchemy.orm import Session
-
-from models.models import ProcessedFile, WordStat
+from repositories.processed_file import ProcessedFileRepository
+from repositories.word_stat import WordStatRepository
 from schemas.schemas import ProcessedResultResponse, TermResponse
 from tasks import process_file_task
 
@@ -41,6 +40,7 @@ async def uploads_file(file, user_id: int):
 
 
 
+
 async def task_status(task):
     """
     Функция проверки статуса задачи
@@ -60,32 +60,31 @@ async def task_status(task):
 
 async def get_result_def(db, file_id: str, page: int = 1, page_size: int = 50):
     """
-    Функция возврата результата обработки файла с дополнительными данными из WordStat
-    :param db:
-    :param file_id:
-    :return:
+    Получение результата обработки файла и статистики слов.
     """
+    file_repo = ProcessedFileRepository(db)
+    word_repo = WordStatRepository(db)
 
-    processed_file = db.query(ProcessedFile).filter(ProcessedFile.file_id == file_id).first()
+    processed_file = file_repo.get_by_file_id(file_id)
     if not processed_file:
         raise HTTPException(status_code=404, detail="File not found")
 
-    total_terms = db.query(WordStat).filter(WordStat.file_id == file_id).count()
+    total_terms = word_repo.count_by_file_id(file_id)
     total_pages = (total_terms + page_size - 1) // page_size
 
-    if page > total_pages or page < 1:
+    if page < 1 or page > total_pages:
         raise HTTPException(status_code=400, detail="Page out of range")
 
-    word_stats = db.query(WordStat).filter(WordStat.file_id == file_id).offset((page - 1) * page_size).limit(
-        page_size).all()
+    word_stats = word_repo.get_by_file_id_paginated(
+        file_id=file_id,
+        offset=(page - 1) * page_size,
+        limit=page_size
+    )
 
     if not word_stats:
         raise HTTPException(status_code=404, detail="WordStats not found")
 
-    terms = [
-        TermResponse(word=word_stat.term, tf=word_stat.tf, idf=word_stat.idf)
-        for word_stat in word_stats
-    ]
+    terms = [TermResponse(word=w.term, tf=w.tf, idf=w.idf) for w in word_stats]
 
     return ProcessedResultResponse(
         status=processed_file.status,
@@ -99,14 +98,12 @@ async def get_result_def(db, file_id: str, page: int = 1, page_size: int = 50):
     )
 
 
-async def delete_file_by_id(db, file_id):
+async def delete_file_by_id(db, file_id: str):
     """
-    Функция удаления файла и его данных
-    :param db:
-    :param file_id:
-    :return:
+    Удаление файла и его данных.
     """
-    file = db.query(ProcessedFile).filter(ProcessedFile.file_id == file_id).first()
+    file_repo = ProcessedFileRepository(db)
+    file = file_repo.get_by_file_id(file_id)
     if not file:
         raise HTTPException(status_code=404, detail="File not found")
 

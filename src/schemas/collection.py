@@ -1,13 +1,19 @@
-from typing import List
-
 from pydantic import BaseModel
+from typing import List, Dict
 
+class DocumentOut(BaseModel):
+    file_id: str
+    filename: str
+    file_path: str
 
-class CollectionBase(BaseModel):
-    id: int
-    documents: List[int] = []
+class CollectionOut(BaseModel):
+    collection_id: int
+    documents: List[DocumentOut]
 
+class CollectionDocumentsOut(BaseModel):
+    collection_id: int
+    documents: List[str]
 
-class CollectionStatistics(BaseModel):
-    tf: dict[str, int]
-    idf: dict[str, float]
+class CollectionStatisticsOut(BaseModel):
+    collection_id: int
+    statistics: Dict
