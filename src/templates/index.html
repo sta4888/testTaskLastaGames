@@ -1,181 +1,262 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Загрузка файла</title>
-    <style>
-        #progress-container {
-            display: none;
-            margin-top: 20px;
-        }
-
-        #progress-bar {
-            width: 0%;
-            height: 20px;
-            background-color: #4caf50;
-            transition: width 0.3s;
-        }
-
-        #progress-text {
-            margin-top: 10px;
-        }
-
-        table {
-            margin-top: 20px;
-            border-collapse: collapse;
-            width: 100%;
-        }
-
-        th, td {
-            border: 1px solid #ccc;
-            padding: 8px;
-        }
-
-        #pagination {
-            margin-top: 10px;
-        }
-
-        #pagination button {
-            margin-right: 5px;
-        }
-
-        #auth-section, #unauth-section {
-            display: none;
-        }
-    </style>
+    <!-- Подключение Tabler CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/tabler@latest/dist/css/tabler.min.css" rel="stylesheet">
 </head>
-<body>
-<div id="unauth-section">
-    <button id="status-btn">Статус</button>
-    <button id="version-btn">Версия</button>
-    <button id="metrics-btn">Метрики</button>
-
-    <hr>
-
-    <h2>Вход в систему</h2>
-    <form id="login-form">
-        <input type="text" name="username" placeholder="Имя пользователя" required>
-        <input type="password" name="password" placeholder="Пароль" required>
-        <button type="submit">Войти</button>
-    </form>
-    <p id="login-status"></p>
-</div>
-
-<div id="auth-section">
-    <button id="logout-btn">Выйти</button>
-    <button id="change-password-btn">Сменить пароль</button>
-
-    <hr>
-
-    <h2>Загрузите текстовый файл</h2>
-    <form id="upload-form" enctype="multipart/form-data">
-        <input type="file" name="file" accept=".txt" required>
-        <button type="submit">Загрузить</button>
-    </form>
-
-    <div id="progress-container">
-        <div id="progress-bar"></div>
-        <p id="progress-text">Ожидание...</p>
-    </div>
-
-    <div id="result-section" style="display: none;">
-        <h3>Результаты анализа</h3>
-        <table id="result-table">
-            <thead>
-            <tr>
-                <th>Слово</th>
-                <th>TF</th>
-                <th>IDF</th>
-            </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
-        <div id="pagination">
-            <button id="prev-page-btn">Назад</button>
-            <span id="page-info"></span>
-            <button id="next-page-btn">Вперёд</button>
+<body class="antialiased bg-gray-100">
+<div class="container-xl">
+    <div class="page-header d-print-none">
+        <div class="row align-items-center">
+            <div class="col">
+                <h2 class="page-title">
+                    Загрузка файла
+                </h2>
+            </div>
+            <div class="col-auto ms-auto d-print-none">
+                <div id="unauth-section" class="btn-list">
+                    <button id="status-btn" class="btn btn-info">Статус</button>
+                    <button id="version-btn" class="btn btn-info">Версия</button>
+                    <button id="metrics-btn" class="btn btn-info">Метрики</button>
+                    <button id="login-btn" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#loginModal">
+                        Войти
+                    </button>
+                    <button id="register-btn" class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#registerModal">
+                        Регистрация
+                    </button>
+                </div>
+                <div id="auth-section" class="btn-list" style="display: none;">
+                    <button id="logout-btn" class="btn btn-danger">Выйти</button>
+                    <!-- Здесь будут ваши табы для авторизованных пользователей -->
+                </div>
+            </div>
         </div>
     </div>
 </div>
 
+<!-- Модальное окно для входа -->
+<div class="modal modal-blur fade" id="loginModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Вход в систему</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="login-form">
+                    <div class="mb-3">
+                        <label class="form-label">Имя пользователя</label>
+                        <input type="text" class="form-control" name="username" placeholder="Имя пользователя" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Пароль</label>
+                        <input type="password" class="form-control" name="password" placeholder="Пароль" required>
+                    </div>
+                    <div class="form-footer">
+                        <button type="submit" class="btn btn-primary w-100">Войти</button>
+                    </div>
+                </form>
+                <div id="login-status" class="mt-2"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно для регистрации -->
+<div class="modal modal-blur fade" id="registerModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Регистрация</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="register-form">
+                    <div class="mb-3">
+                        <label class="form-label">Имя пользователя</label>
+                        <input type="text" class="form-control" name="username" placeholder="Имя пользователя" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Пароль</label>
+                        <input type="password" class="form-control" name="password" placeholder="Пароль" required>
+                    </div>
+                    <div class="form-footer">
+                        <button type="submit" class="btn btn-primary w-100">Зарегистрироваться</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно для отображения статуса, версии и метрик -->
+<div class="modal modal-blur fade" id="infoModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="infoModalTitle">Информация</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="infoModalBody">
+                <!-- Здесь будет отображаться информация -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Подключение необходимых JS библиотек -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tabler@latest/dist/js/tabler.min.js"></script>
+
 <script>
-    const loginForm = document.getElementById("login-form");
-    const logoutBtn = document.getElementById("logout-btn");
-    const changePasswordBtn = document.getElementById("change-password-btn");
-    const statusBtn = document.getElementById("status-btn");
-    const versionBtn = document.getElementById("version-btn");
-    const metricsBtn = document.getElementById("metrics-btn");
-    const authSection = document.getElementById("auth-section");
-    const unauthSection = document.getElementById("unauth-section");
-    const loginStatus = document.getElementById("login-status");
+    document.addEventListener('DOMContentLoaded', function() {
+        const accessToken = localStorage.getItem("access_token");
+        const unauthSection = document.getElementById("unauth-section");
+        const authSection = document.getElementById("auth-section");
+        const loginStatus = document.getElementById("login-status");
 
-    let accessToken = localStorage.getItem("access_token");
-
-    function updateUI() {
-        if (accessToken) {
-            authSection.style.display = "block";
-            unauthSection.style.display = "none";
-        } else {
-            authSection.style.display = "none";
-            unauthSection.style.display = "block";
-        }
-    }
-
-    loginForm.addEventListener("submit", async function (e) {
-        e.preventDefault();
-
-        const formData = new FormData(loginForm);
-        const payload = new URLSearchParams(formData);
-
-        try {
-            const res = await fetch("/api/v2/user/login", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/x-www-form-urlencoded"
-                },
-                body: payload
-            });
-
-            if (!res.ok) {
-                loginStatus.textContent = "Ошибка входа.";
-                return;
+        function updateUI() {
+            if (accessToken) {
+                unauthSection.style.display = "none";
+                authSection.style.display = "block";
+            } else {
+                unauthSection.style.display = "block";
+                authSection.style.display = "none";
             }
-
-            const data = await res.json();
-            accessToken = data.access_token;
-            localStorage.setItem("access_token", accessToken);
-            loginStatus.textContent = "Успешный вход!";
-            updateUI();
-        } catch (err) {
-            loginStatus.textContent = "Ошибка запроса.";
-            console.error(err);
         }
-    });
 
-    logoutBtn.addEventListener("click", () => {
-        localStorage.removeItem("access_token");
-        accessToken = null;
+        // Инициализация модальных окон
+        var loginModalElement = document.getElementById('loginModal');
+        var registerModalElement = document.getElementById('registerModal');
+        var infoModalElement = document.getElementById('infoModal');
+
+        var loginModal = new bootstrap.Modal(loginModalElement);
+        var registerModal = new bootstrap.Modal(registerModalElement);
+        var infoModal = new bootstrap.Modal(infoModalElement);
+
+        // Управление атрибутом aria-hidden для модального окна входа
+        loginModalElement.addEventListener('shown.bs.modal', function () {
+            this.setAttribute('aria-hidden', 'false');
+        });
+
+        loginModalElement.addEventListener('hidden.bs.modal', function () {
+            this.setAttribute('aria-hidden', 'true');
+        });
+
+        // Управление атрибутом aria-hidden для модального окна регистрации
+        registerModalElement.addEventListener('shown.bs.modal', function () {
+            this.setAttribute('aria-hidden', 'false');
+        });
+
+        registerModalElement.addEventListener('hidden.bs.modal', function () {
+            this.setAttribute('aria-hidden', 'true');
+        });
+
+        const loginForm = document.getElementById("login-form");
+        const registerForm = document.getElementById("register-form");
+        const logoutBtn = document.getElementById("logout-btn");
+        const statusBtn = document.getElementById("status-btn");
+        const versionBtn = document.getElementById("version-btn");
+        const metricsBtn = document.getElementById("metrics-btn");
+
+        loginForm.addEventListener("submit", async function (e) {
+            e.preventDefault();
+            loginStatus.textContent = "";
+
+            const formData = new FormData(loginForm);
+            const payload = new URLSearchParams(formData);
+
+            try {
+                const res = await fetch("/api/v2/user/login", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/x-www-form-urlencoded"
+                    },
+                    body: payload
+                });
+
+                if (!res.ok) {
+                    const errorData = await res.json();
+                    loginStatus.textContent = "Ошибка входа: " + (errorData.detail || "Неверный логин или пароль");
+                    return;
+                }
+
+                const data = await res.json();
+                localStorage.setItem("access_token", data.access_token);
+                window.location.reload(); // Перезагрузка страницы после успешного входа
+            } catch (err) {
+                console.error(err);
+                loginStatus.textContent = "Ошибка запроса: " + err.message;
+            }
+        });
+
+        registerForm.addEventListener("submit", async function (e) {
+            e.preventDefault();
+
+            const formData = new FormData(registerForm);
+            const payload = {
+                username: formData.get("username"),
+                password: formData.get("password")
+            };
+
+            try {
+                const res = await fetch("/api/v2/user/register", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!res.ok) {
+                    const errorData = await res.json();
+                    alert("Ошибка регистрации: " + (errorData.detail || "Пользователь с таким именем уже существует"));
+                    return;
+                }
+
+                alert("Пользователь успешно создан!");
+                registerModal.hide();
+            } catch (err) {
+                console.error(err);
+                alert("Ошибка запроса: " + err.message);
+            }
+        });
+
+        logoutBtn.addEventListener("click", function() {
+            localStorage.removeItem("access_token");
+            window.location.reload(); // Перезагрузка страницы после выхода
+        });
+
+        async function fetchData(url, title) {
+            try {
+                const res = await fetch(url);
+                const data = await res.json();
+                document.getElementById("infoModalTitle").textContent = title;
+                document.getElementById("infoModalBody").textContent = JSON.stringify(data, null, 2);
+                infoModal.show();
+            } catch (err) {
+                console.error(err);
+                alert("Ошибка запроса: " + err.message);
+            }
+        }
+
+        statusBtn.addEventListener("click", function() {
+            fetchData("/api/v2/status", "Статус");
+        });
+
+        versionBtn.addEventListener("click", function() {
+            fetchData("/api/v2/version", "Версия");
+        });
+
+        metricsBtn.addEventListener("click", function() {
+            fetchData("/api/v2/metrics", "Метрики");
+        });
+
         updateUI();
     });
-
-    statusBtn.addEventListener("click", async () => {
-        const res = await fetch("/api/v2/status");
-        const data = await res.json();
-        alert(`Статус: ${data.status}`);
-    });
-
-    versionBtn.addEventListener("click", async () => {
-        const res = await fetch("/api/v2/version");
-        const data = await res.json();
-        alert(`Версия: ${data.version}`);
-    });
-
-    metricsBtn.addEventListener("click", async () => {
-        const res = await fetch("/api/v2/metrics");
-        const data = await res.json();
-        alert(`Метрики: ${JSON.stringify(data)}`);
-    });
-
-    updateUI();
 </script>
 </body>
 </html>
