@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Загрузка файла</title>
-    <!-- Подключение Tabler CSS -->
     <link href="https://cdn.jsdelivr.net/npm/tabler@latest/dist/css/tabler.min.css" rel="stylesheet">
 </head>
 <body class="antialiased bg-gray-100">
@@ -30,7 +29,11 @@
                 </div>
                 <div id="auth-section" class="btn-list" style="display: none;">
                     <button id="logout-btn" class="btn btn-danger">Выйти</button>
-                    <!-- Здесь будут ваши табы для авторизованных пользователей -->
+                    <button id="upload-btn" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#uploadModal">
+                        Загрузить файл
+                    </button>
+                    <button id="documents-btn" class="btn btn-info">Документы</button>
+                    <button id="collections-btn" class="btn btn-warning">Коллекции</button>
                 </div>
             </div>
         </div>
@@ -92,6 +95,29 @@
     </div>
 </div>
 
+<!-- Модальное окно для загрузки файла -->
+<div class="modal modal-blur fade" id="uploadModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Загрузить файл</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="upload-form" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label class="form-label">Выберите файл</label>
+                        <input type="file" class="form-control" name="file" accept=".txt" required>
+                    </div>
+                    <div class="form-footer">
+                        <button type="submit" class="btn btn-primary w-100">Загрузить</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Модальное окно для отображения статуса, версии и метрик -->
 <div class="modal modal-blur fade" id="infoModal" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered" role="document">
@@ -112,58 +138,35 @@
 <script src="https://cdn.jsdelivr.net/npm/tabler@latest/dist/js/tabler.min.js"></script>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const accessToken = localStorage.getItem("access_token");
-        const unauthSection = document.getElementById("unauth-section");
-        const authSection = document.getElementById("auth-section");
-        const loginStatus = document.getElementById("login-status");
+document.addEventListener('DOMContentLoaded', function() {
+    const accessToken = localStorage.getItem("access_token");
+    const unauthSection = document.getElementById("unauth-section");
+    const authSection = document.getElementById("auth-section");
 
-        function updateUI() {
-            if (accessToken) {
-                unauthSection.style.display = "none";
-                authSection.style.display = "block";
-            } else {
-                unauthSection.style.display = "block";
-                authSection.style.display = "none";
-            }
+    function updateUI() {
+        if (accessToken) {
+            unauthSection.style.display = "none";
+            authSection.style.display = "block";
+        } else {
+            unauthSection.style.display = "block";
+            authSection.style.display = "none";
         }
+    }
 
-        // Инициализация модальных окон
-        var loginModalElement = document.getElementById('loginModal');
-        var registerModalElement = document.getElementById('registerModal');
-        var infoModalElement = document.getElementById('infoModal');
+    // Инициализация модальных окон
+    const loginModal = new bootstrap.Modal(document.getElementById('loginModal'));
+    const registerModal = new bootstrap.Modal(document.getElementById('registerModal'));
+    const uploadModal = new bootstrap.Modal(document.getElementById('uploadModal'));
+    const infoModal = new bootstrap.Modal(document.getElementById('infoModal'));
 
-        var loginModal = new bootstrap.Modal(loginModalElement);
-        var registerModal = new bootstrap.Modal(registerModalElement);
-        var infoModal = new bootstrap.Modal(infoModalElement);
+    // Обработчики для модальных окон
+    document.getElementById('login-btn').addEventListener('click', () => loginModal.show());
+    document.getElementById('register-btn').addEventListener('click', () => registerModal.show());
+    document.getElementById('upload-btn').addEventListener('click', () => uploadModal.show());
 
-        // Управление атрибутом aria-hidden для модального окна входа
-        loginModalElement.addEventListener('shown.bs.modal', function () {
-            this.setAttribute('aria-hidden', 'false');
-        });
-
-        loginModalElement.addEventListener('hidden.bs.modal', function () {
-            this.setAttribute('aria-hidden', 'true');
-        });
-
-        // Управление атрибутом aria-hidden для модального окна регистрации
-        registerModalElement.addEventListener('shown.bs.modal', function () {
-            this.setAttribute('aria-hidden', 'false');
-        });
-
-        registerModalElement.addEventListener('hidden.bs.modal', function () {
-            this.setAttribute('aria-hidden', 'true');
-        });
-
-        const loginForm = document.getElementById("login-form");
-        const registerForm = document.getElementById("register-form");
-        const logoutBtn = document.getElementById("logout-btn");
-        const statusBtn = document.getElementById("status-btn");
-        const versionBtn = document.getElementById("version-btn");
-        const metricsBtn = document.getElementById("metrics-btn");
-
-        loginForm.addEventListener("submit", async function (e) {
-            e.preventDefault();
+    // Обработчики для форм
+    document.getElementById('login-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
             loginStatus.textContent = "";
 
             const formData = new FormData(loginForm);
@@ -193,8 +196,8 @@
             }
         });
 
-        registerForm.addEventListener("submit", async function (e) {
-            e.preventDefault();
+    document.getElementById('register-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
 
             const formData = new FormData(registerForm);
             const payload = {
@@ -225,38 +228,79 @@
             }
         });
 
-        logoutBtn.addEventListener("click", function() {
-            localStorage.removeItem("access_token");
-            window.location.reload(); // Перезагрузка страницы после выхода
-        });
+    document.getElementById('upload-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const formData = new FormData(document.getElementById('upload-form'));
 
-        async function fetchData(url, title) {
-            try {
-                const res = await fetch(url);
-                const data = await res.json();
-                document.getElementById("infoModalTitle").textContent = title;
-                document.getElementById("infoModalBody").textContent = JSON.stringify(data, null, 2);
-                infoModal.show();
-            } catch (err) {
-                console.error(err);
-                alert("Ошибка запроса: " + err.message);
+        try {
+            const response = await fetch("/api/v1/upload/", {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${accessToken}`
+                },
+                body: formData
+            });
+
+            if (!response.ok) {
+                throw new Error("Ошибка загрузки файла");
             }
+
+            const data = await response.json();
+            alert("Файл успешно загружен!");
+            uploadModal.hide();
+        } catch (err) {
+            console.error(err);
+            alert("Ошибка: " + err.message);
         }
-
-        statusBtn.addEventListener("click", function() {
-            fetchData("/api/v2/status", "Статус");
-        });
-
-        versionBtn.addEventListener("click", function() {
-            fetchData("/api/v2/version", "Версия");
-        });
-
-        metricsBtn.addEventListener("click", function() {
-            fetchData("/api/v2/metrics", "Метрики");
-        });
-
-        updateUI();
     });
+
+    // Обработчики для кнопок документов и коллекций
+    document.getElementById('documents-btn').addEventListener('click', async function() {
+        try {
+            const response = await fetch("/api/v2/documents/", {
+                headers: {
+                    "Authorization": `Bearer ${accessToken}`
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error("Ошибка получения списка документов");
+            }
+
+            const data = await response.json();
+            document.getElementById("infoModalTitle").textContent = "Документы";
+            document.getElementById("infoModalBody").textContent = JSON.stringify(data, null, 2);
+            infoModal.show();
+        } catch (err) {
+            console.error(err);
+            alert("Ошибка: " + err.message);
+        }
+    });
+
+    document.getElementById('collections-btn').addEventListener('click', async function() {
+        try {
+            const response = await fetch("/api/v2/collections/", {
+                headers: {
+                    "Authorization": `Bearer ${accessToken}`
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error("Ошибка получения списка коллекций");
+            }
+
+            const data = await response.json();
+            document.getElementById("infoModalTitle").textContent = "Коллекции";
+            document.getElementById("infoModalBody").textContent = JSON.stringify(data, null, 2);
+            infoModal.show();
+        } catch (err) {
+            console.error(err);
+            alert("Ошибка: " + err.message);
+        }
+    });
+
+    updateUI();
+});
 </script>
 </body>
 </html>
