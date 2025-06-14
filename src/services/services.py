@@ -13,6 +13,7 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
 async def uploads_file(file, user_id: int):
+    # fixme обработать ошибку с загрузкой такого же файла что уже был ранее загружен
     file_id = str(uuid.uuid4())
     file_path = os.path.join(UPLOAD_DIR, f"{file_id}_{file.filename}")
 

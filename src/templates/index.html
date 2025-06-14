@@ -37,163 +37,145 @@
         #pagination button {
             margin-right: 5px;
         }
+
+        #auth-section, #unauth-section {
+            display: none;
+        }
     </style>
 </head>
 <body>
-<h2>Загрузите текстовый файл</h2>
-<form id="upload-form" enctype="multipart/form-data">
-    <input type="file" name="file" accept=".txt" required>
-    <button type="submit">Загрузить</button>
-</form>
+<div id="unauth-section">
+    <button id="status-btn">Статус</button>
+    <button id="version-btn">Версия</button>
+    <button id="metrics-btn">Метрики</button>
 
-<div id="progress-container">
-    <div id="progress-bar"></div>
-    <p id="progress-text">Ожидание...</p>
+    <hr>
+
+    <h2>Вход в систему</h2>
+    <form id="login-form">
+        <input type="text" name="username" placeholder="Имя пользователя" required>
+        <input type="password" name="password" placeholder="Пароль" required>
+        <button type="submit">Войти</button>
+    </form>
+    <p id="login-status"></p>
 </div>
 
-<div id="result-section" style="display: none;">
-    <h3>Результаты анализа</h3>
-    <table id="result-table">
-        <thead>
-        <tr>
-            <th>Слово</th>
-            <th>TF</th>
-            <th>IDF</th>
-        </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
-    <div id="pagination">
-    <button id="prev-page-btn">Назад</button>
-    <span id="page-info"></span>
-    <button id="next-page-btn">Вперёд</button>
+<div id="auth-section">
+    <button id="logout-btn">Выйти</button>
+    <button id="change-password-btn">Сменить пароль</button>
+
+    <hr>
+
+    <h2>Загрузите текстовый файл</h2>
+    <form id="upload-form" enctype="multipart/form-data">
+        <input type="file" name="file" accept=".txt" required>
+        <button type="submit">Загрузить</button>
+    </form>
+
+    <div id="progress-container">
+        <div id="progress-bar"></div>
+        <p id="progress-text">Ожидание...</p>
+    </div>
+
+    <div id="result-section" style="display: none;">
+        <h3>Результаты анализа</h3>
+        <table id="result-table">
+            <thead>
+            <tr>
+                <th>Слово</th>
+                <th>TF</th>
+                <th>IDF</th>
+            </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+        <div id="pagination">
+            <button id="prev-page-btn">Назад</button>
+            <span id="page-info"></span>
+            <button id="next-page-btn">Вперёд</button>
+        </div>
+    </div>
 </div>
 
-</div>
 <script>
-    const form = document.getElementById("upload-form");
-    const progressContainer = document.getElementById("progress-container");
-    const progressBar = document.getElementById("progress-bar");
-    const progressText = document.getElementById("progress-text");
+    const loginForm = document.getElementById("login-form");
+    const logoutBtn = document.getElementById("logout-btn");
+    const changePasswordBtn = document.getElementById("change-password-btn");
+    const statusBtn = document.getElementById("status-btn");
+    const versionBtn = document.getElementById("version-btn");
+    const metricsBtn = document.getElementById("metrics-btn");
+    const authSection = document.getElementById("auth-section");
+    const unauthSection = document.getElementById("unauth-section");
+    const loginStatus = document.getElementById("login-status");
 
-    const resultSection = document.getElementById("result-section");
-    const resultTableBody = document.querySelector("#result-table tbody");
-    const paginationContainer = document.getElementById("pagination");
+    let accessToken = localStorage.getItem("access_token");
 
-    const pageInfo = document.getElementById("page-info");
-    const prevPageBtn = document.getElementById("prev-page-btn");
-    const nextPageBtn = document.getElementById("next-page-btn");
-
-    let fileIdGlobal = null;
-    let currentPage = 1;
-    const pageSize = 50;
-
-    form.addEventListener("submit", async function (e) {
-        e.preventDefault();
-        const fileInput = form.querySelector('input[type="file"]');
-        const file = fileInput.files[0];
-        if (!file) return;
-
-        const formData = new FormData();
-        formData.append("file", file);
-
-        progressContainer.style.display = "block";
-        progressText.textContent = "Файл загружается...";
-
-        try {
-            const uploadRes = await fetch("/upload/", {
-                method: "POST",
-                body: formData
-            });
-            const uploadData = await uploadRes.json();
-
-            const taskId = uploadData.task_id;
-            fileIdGlobal = uploadData.file_id;
-
-            checkStatus(taskId);
-        } catch (err) {
-            console.error(err);
-            progressText.textContent = "Ошибка загрузки";
+    function updateUI() {
+        if (accessToken) {
+            authSection.style.display = "block";
+            unauthSection.style.display = "none";
+        } else {
+            authSection.style.display = "none";
+            unauthSection.style.display = "block";
         }
-    });
-
-    async function checkStatus(taskId) {
-        const interval = setInterval(async () => {
-            try {
-                const res = await fetch(`/status/${taskId}`);
-                const data = await res.json();
-
-                console.log("Статус задачи:", data);
-
-                if (["PENDING", "STARTED", "processing"].includes(data.status)) {
-                    progressText.textContent = `Статус: ${data.status}`;
-                    progressBar.style.width = data.status === "STARTED" || data.status === "processing" ? "50%" : "20%";
-                } else {
-                    clearInterval(interval);
-                    if (["SUCCESS", "completed"].includes(data.status)) {
-                        progressBar.style.width = "100%";
-                        progressText.textContent = "Обработка завершена!";
-                        loadResults(fileIdGlobal, 1); // Указываем первую страницу явно
-                    } else {
-                        progressText.textContent = "Произошла ошибка при обработке файла.";
-                    }
-                }
-
-            } catch (err) {
-                clearInterval(interval);
-                console.error("Ошибка запроса статуса:", err);
-                progressText.textContent = "Ошибка проверки статуса.";
-            }
-        }, 1500);
     }
 
-    async function loadResults(fileId, page = 1) {
-        currentPage = page;
+    loginForm.addEventListener("submit", async function (e) {
+        e.preventDefault();
+
+        const formData = new FormData(loginForm);
+        const payload = new URLSearchParams(formData);
+
         try {
-            const res = await fetch(`/result/${fileId}?page=${page}&page_size=${pageSize}`);
+            const res = await fetch("/api/v2/user/login", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded"
+                },
+                body: payload
+            });
 
             if (!res.ok) {
-                const errorData = await res.json();
-                throw new Error(`Ошибка API: ${res.status} — ${JSON.stringify(errorData)}`);
+                loginStatus.textContent = "Ошибка входа.";
+                return;
             }
 
             const data = await res.json();
-            console.log("Результаты:", data);
-
-            resultTableBody.innerHTML = "";
-
-            data.terms.forEach(item => {
-                const row = document.createElement("tr");
-                row.innerHTML = `
-                    <td>${item.word}</td>
-                    <td>${item.tf}</td>
-                    <td>${item.idf.toFixed(6)}</td>
-                `;
-                resultTableBody.appendChild(row);
-            });
-
-            resultSection.style.display = "block";
-            pageInfo.textContent = `Страница ${page}`;
-            prevPageBtn.disabled = page <= 1;
-            nextPageBtn.disabled = page >= data.total_pages;
-
+            accessToken = data.access_token;
+            localStorage.setItem("access_token", accessToken);
+            loginStatus.textContent = "Успешный вход!";
+            updateUI();
         } catch (err) {
-            console.error("Ошибка при загрузке результатов:", err);
-            progressText.textContent = "Произошла ошибка при загрузке результатов.";
-        }
-    }
-
-    // Обработчики кнопок пагинации
-    prevPageBtn.addEventListener("click", () => {
-        if (currentPage > 1) {
-            loadResults(fileIdGlobal, currentPage - 1);
+            loginStatus.textContent = "Ошибка запроса.";
+            console.error(err);
         }
     });
 
-    nextPageBtn.addEventListener("click", () => {
-        loadResults(fileIdGlobal, currentPage + 1);
+    logoutBtn.addEventListener("click", () => {
+        localStorage.removeItem("access_token");
+        accessToken = null;
+        updateUI();
     });
+
+    statusBtn.addEventListener("click", async () => {
+        const res = await fetch("/api/v2/status");
+        const data = await res.json();
+        alert(`Статус: ${data.status}`);
+    });
+
+    versionBtn.addEventListener("click", async () => {
+        const res = await fetch("/api/v2/version");
+        const data = await res.json();
+        alert(`Версия: ${data.version}`);
+    });
+
+    metricsBtn.addEventListener("click", async () => {
+        const res = await fetch("/api/v2/metrics");
+        const data = await res.json();
+        alert(`Метрики: ${JSON.stringify(data)}`);
+    });
+
+    updateUI();
 </script>
-
 </body>
 </html>
