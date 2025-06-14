@@ -130,16 +130,13 @@ async def get_custom_metrics(db):
     if not processed_files:
         return metrics
 
-    # Рассчитываем количество обработанных файлов
     files_processed = len(processed_files)
 
-    # Рассчитываем минимальное, среднее и максимальное время обработки
     times_processed = [float(file.time_processed) for file in processed_files]
     min_time_processed = min(times_processed)
     avg_time_processed = sum(times_processed) / len(times_processed)
     max_time_processed = max(times_processed)
 
-    # Определяем время обработки последнего файла
     latest_file_processed_timestamp = max(file.created_at for file in processed_files).timestamp()
 
     metrics.files_processed = files_processed

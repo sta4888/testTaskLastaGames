@@ -18,6 +18,7 @@ async def get_app_status():
 async def get_app_version():
     return {"version": settings.project.release_version}
 
+
 @router.get("/metrics", summary="Получить метрики обработки файлов")
 async def get_app_metrics(db: Session = Depends(get_db)):
     return await get_custom_metrics(db)
