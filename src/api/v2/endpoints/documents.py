@@ -17,7 +17,7 @@ router = APIRouter(prefix="/documents")
 def get_documents(current_user=Depends(UserService.get_current_user), db: Session = Depends(get_db)):
     repo = ProcessedFileRepository(db)
     docs = repo.get_by_owner_id(current_user.id)
-    return [{"id": doc.id, "name": doc.filename} for doc in docs]
+    return [DocumentListItem(id=doc.id, name=doc.filename) for doc in docs]
 
 
 @router.get("/{document_id}", response_model=DocumentResult, summary="получить содержимое документа")
@@ -50,7 +50,7 @@ def get_statistics(document_id: int, current_user=Depends(UserService.get_curren
     if not doc or doc.owner_id != current_user.id:
         raise HTTPException(status_code=404, detail="Document not found")
     stats = stat_repo.get_by_file_id(doc.file_id)
-    return [{"word": s.term, "tf": s.tf, "idf": s.idf} for s in stats]
+    return [{"word": s.term, "tf": s.tf, "idf": s.idf} for s in stats]  # здесь так, так как в модели нет word
 
 
 @router.delete("/{document_id}", response_model=MessageResponse, summary="удалить документ")

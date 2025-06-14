@@ -7,6 +7,9 @@ class DocumentListItem(BaseModel):
     id: int
     name: str
 
+    class Config:
+        from_attributes = True
+
 
 class DocumentResult(BaseModel):
     lines_count: Optional[int]
