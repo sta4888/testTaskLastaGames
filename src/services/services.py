@@ -5,7 +5,7 @@ import uuid
 from fastapi import HTTPException
 from repositories.processed_file import ProcessedFileRepository
 from repositories.word_stat import WordStatRepository
-from schemas.schemas import ProcessedResultResponse, TermResponse
+from schemas.schemas import ProcessedResultResponse, TermResponse, MetricsResponse
 from tasks import process_file_task
 
 UPLOAD_DIR = "uploads"
@@ -37,8 +37,6 @@ async def uploads_file(file, user_id: int):
         "task_id": task.id,
         "status": "processing"
     }
-
-
 
 
 async def task_status(task):
@@ -115,3 +113,40 @@ async def delete_file_by_id(db, file_id: str):
     db.commit()
 
     return {"status": "success", "message": "File deleted successfully"}
+
+
+async def get_custom_metrics(db):
+    metrics = MetricsResponse(
+        files_processed=0,
+        min_time_processed=0.0,
+        avg_time_processed=0.0,
+        max_time_processed=0.0,
+        latest_file_processed_timestamp=None
+    )
+    processed_file_repo = ProcessedFileRepository(db)
+
+    processed_files = processed_file_repo.get_all()
+
+    if not processed_files:
+        return metrics
+
+    # Рассчитываем количество обработанных файлов
+    files_processed = len(processed_files)
+
+    # Рассчитываем минимальное, среднее и максимальное время обработки
+    times_processed = [float(file.time_processed) for file in processed_files]
+    min_time_processed = min(times_processed)
+    avg_time_processed = sum(times_processed) / len(times_processed)
+    max_time_processed = max(times_processed)
+
+    # Определяем время обработки последнего файла
+    latest_file_processed_timestamp = max(file.created_at for file in processed_files).timestamp()
+
+    metrics.files_processed = files_processed
+    metrics.min_time_processed = round(min_time_processed, 3)
+    metrics.avg_time_processed = round(avg_time_processed, 3)
+    metrics.max_time_processed = round(max_time_processed, 3)
+    metrics.latest_file_processed_timestamp = latest_file_processed_timestamp
+
+
+    return metrics

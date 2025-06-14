@@ -18,3 +18,12 @@ class ProcessedResultResponse(BaseModel):
     total_terms: int
     page: int
     total_pages: int
+
+
+
+class MetricsResponse(BaseModel):
+    files_processed: float
+    min_time_processed: float
+    avg_time_processed: float
+    max_time_processed: float
+    latest_file_processed_timestamp: Optional[float]
