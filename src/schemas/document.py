@@ -10,9 +10,7 @@ class DocumentListItem(BaseModel):
 
 class DocumentResult(BaseModel):
     lines_count: Optional[int]
-    first_line: Optional[str]
-    last_line: Optional[str]
-    processing_status: Optional[str]
+    text: str
 
 
 

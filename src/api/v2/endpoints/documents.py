@@ -26,7 +26,20 @@ def get_document(document_id: int, current_user=Depends(UserService.get_current_
     doc = repo.get(document_id)
     if not doc or doc.owner_id != current_user.id:
         raise HTTPException(status_code=404, detail="Document not found")
-    return doc.result
+
+    try:
+        with open(doc.file_path, "r", encoding="utf-8") as f:
+            file_text = f.read()
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="File not found on disk")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error reading file: {str(e)}")
+
+    print(doc.result)
+    return DocumentResult(
+        lines_count=doc.result.get("lines_count"),
+        text=file_text
+    )
 
 
 @router.get("/{document_id}/statistics", response_model=List[TermResponse], summary="получить статистику по документу")
