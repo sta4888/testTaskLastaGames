@@ -113,6 +113,8 @@ services:
       - ./nginx-proxy-manager/data:/data
       - ./nginx-proxy-manager/letsencrypt:/etc/letsencrypt
     restart: unless-stopped
+    networks:
+      - lesta
 
 volumes:
   prometheus_data:
