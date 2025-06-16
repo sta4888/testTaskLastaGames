@@ -34,15 +34,14 @@
                             data-bs-target="#uploadModal">
                         Загрузить файл
                     </button>
-                    <button id="documents-btn" class="btn btn-info">Документы</button>
-                    <button id="collections-btn" class="btn btn-warning">Коллекции</button>
+<!--                    <button id="documents-btn" class="btn btn-info">Документы</button>-->
+<!--                    <button id="collections-btn" class="btn btn-warning">Коллекции</button>-->
                 </div>
             </div>
         </div>
     </div>
-</div>
 
-<!--Табы-->
+    <!--Табы-->
 <div id="tabs-section" style="display: none;">
     <ul class="nav nav-tabs" id="mainTabs" role="tablist">
         <li class="nav-item" role="presentation">
@@ -73,13 +72,31 @@
         </div>
 
         <div class="tab-pane fade" id="tab2" role="tabpanel" aria-labelledby="tab2-tab">
-            <p>Контент вкладки "Коллекции"</p>
+            <div class="row">
+                <!-- Левая колонка: Коллекции с документами -->
+                <div class="col-md-6">
+                    <h5>Коллекции</h5>
+                    <div id="collections-list" class="accordion"></div>
+                </div>
+
+                <!-- Правая колонка: Статистика по коллекции -->
+                <div class="col-md-6">
+                    <h5>Статистика по коллекции</h5>
+                    <div id="collection-statistics">
+                        <p>Выберите коллекцию, чтобы увидеть статистику.</p>
+                    </div>
+                </div>
+            </div>
         </div>
+
     </div>
 </div>
 
 
 <!--Табы конец-->
+</div>
+
+
 <!-- Модальное окно для входа -->
 <div class="modal modal-blur fade" id="loginModal" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered" role="document">
@@ -343,6 +360,117 @@
         }
 
 
+        // Коллекции
+        async function loadCollections() {
+            const res = await fetch("/api/v2/collections/", {
+                headers: {
+                    "Authorization": `Bearer ${localStorage.getItem("access_token")}`  // или откуда ты его хранишь
+                }
+            });
+
+            if (!res.ok) return alert("Ошибка при загрузке коллекций");
+
+            const collections = await res.json();
+            const container = document.getElementById("collections-list");
+            container.innerHTML = "";
+
+            collections.forEach((col, idx) => {
+    const collectionId = col.collection_id;
+
+    const docs = col.documents.map(doc => `
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+            ${doc.filename}
+            <button class="btn btn-sm btn-outline-danger" onclick="removeDocumentFromCollection(${collectionId}, ${doc.file_id})">Удалить</button>
+        </li>
+    `).join("");
+
+    const accordionItem = document.createElement("div");
+    accordionItem.className = "accordion-item";
+    accordionItem.innerHTML = `
+        <h2 class="accordion-header" id="heading${idx}">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse${idx}" aria-expanded="false">
+                Коллекция #${collectionId}
+            </button>
+        </h2>
+        <div id="collapse${idx}" class="accordion-collapse collapse" data-bs-parent="#collections-list">
+            <div class="accordion-body">
+                <ul class="list-group mb-3">${docs}</ul>
+                <button class="btn btn-sm btn-primary stat-button">Показать статистику</button>
+            </div>
+        </div>
+    `;
+
+    // Добавляем в DOM
+    container.appendChild(accordionItem);
+
+    // Назначаем обработчик после вставки в DOM
+    accordionItem.querySelector(".stat-button").onclick = () => loadCollectionStatistics(collectionId);
+});
+
+        }
+
+        async function loadCollectionStatistics(collectionId) {
+    const res = await fetch(`/api/v2/collections/${collectionId}/statistics`, {
+        headers: {
+            "Authorization": `Bearer ${localStorage.getItem("access_token")}`
+        }
+    });
+
+    const statContainer = document.getElementById("collection-statistics");
+
+    if (!res.ok) {
+        statContainer.innerHTML = `<div class="alert alert-danger">Ошибка загрузки статистики</div>`;
+        return;
+    }
+
+    const data = await res.json();
+    const tfMap = data.statistics.tf || {};
+    const idfMap = data.statistics.idf || {};
+
+    // Объединяем tf и idf по слову
+    const allWords = new Set([...Object.keys(tfMap), ...Object.keys(idfMap)]);
+    const stats = Array.from(allWords).map(word => ({
+        word,
+        tf: tfMap[word] || 0,
+        idf: idfMap[word] || 0,
+    }));
+
+    // Рендерим
+    statContainer.innerHTML = `
+        <h6>Коллекция #${collectionId}</h6>
+        <table class="table table-sm">
+            <thead><tr><th>Слово</th><th>TF</th><th>IDF</th></tr></thead>
+            <tbody>
+                ${stats.map(row => `
+                    <tr>
+                        <td>${row.word}</td>
+                        <td>${row.tf.toFixed(3)}</td>
+                        <td>${row.idf.toFixed(3)}</td>
+                    </tr>
+                `).join("")}
+            </tbody>
+        </table>
+    `;
+}
+
+
+        async function removeDocumentFromCollection(collectionId, documentId) {
+            const confirmed = confirm("Удалить документ из коллекции?");
+            if (!confirmed) return;
+
+            const res = await fetch(`/api/v2/collections/${collectionId}/${documentId}`, {
+                method: "DELETE",
+            });
+
+            if (res.ok) {
+                alert("Документ удалён");
+                await loadCollections();
+            } else {
+                alert("Ошибка удаления документа");
+            }
+        }
+
+
         // Инициализация модальных окон
         const loginModal = new bootstrap.Modal(document.getElementById('loginModal'));
         const registerModal = new bootstrap.Modal(document.getElementById('registerModal'));
@@ -452,49 +580,49 @@
         });
 
         // Обработчики для кнопок документов и коллекций
-        document.getElementById('documents-btn').addEventListener('click', async function () {
-            try {
-                const response = await fetch("/api/v2/documents/", {
-                    headers: {
-                        "Authorization": `Bearer ${accessToken}`
-                    }
-                });
-
-                if (!response.ok) {
-                    throw new Error("Ошибка получения списка документов");
-                }
-
-                const data = await response.json();
-                document.getElementById("infoModalTitle").textContent = "Документы";
-                document.getElementById("infoModalBody").textContent = JSON.stringify(data, null, 2);
-                infoModal.show();
-            } catch (err) {
-                console.error(err);
-                alert("Ошибка: " + err.message);
-            }
-        });
-
-        document.getElementById('collections-btn').addEventListener('click', async function () {
-            try {
-                const response = await fetch("/api/v2/collections/", {
-                    headers: {
-                        "Authorization": `Bearer ${accessToken}`
-                    }
-                });
-
-                if (!response.ok) {
-                    throw new Error("Ошибка получения списка коллекций");
-                }
-
-                const data = await response.json();
-                document.getElementById("infoModalTitle").textContent = "Коллекции";
-                document.getElementById("infoModalBody").textContent = JSON.stringify(data, null, 2);
-                infoModal.show();
-            } catch (err) {
-                console.error(err);
-                alert("Ошибка: " + err.message);
-            }
-        });
+        // document.getElementById('documents-btn').addEventListener('click', async function () {
+        //     try {
+        //         const response = await fetch("/api/v2/documents/", {
+        //             headers: {
+        //                 "Authorization": `Bearer ${accessToken}`
+        //             }
+        //         });
+        //
+        //         if (!response.ok) {
+        //             throw new Error("Ошибка получения списка документов");
+        //         }
+        //
+        //         const data = await response.json();
+        //         document.getElementById("infoModalTitle").textContent = "Документы";
+        //         document.getElementById("infoModalBody").textContent = JSON.stringify(data, null, 2);
+        //         infoModal.show();
+        //     } catch (err) {
+        //         console.error(err);
+        //         alert("Ошибка: " + err.message);
+        //     }
+        // });
+        //
+        // document.getElementById('collections-btn').addEventListener('click', async function () {
+        //     try {
+        //         const response = await fetch("/api/v2/collections/", {
+        //             headers: {
+        //                 "Authorization": `Bearer ${accessToken}`
+        //             }
+        //         });
+        //
+        //         if (!response.ok) {
+        //             throw new Error("Ошибка получения списка коллекций");
+        //         }
+        //
+        //         const data = await response.json();
+        //         document.getElementById("infoModalTitle").textContent = "Коллекции";
+        //         document.getElementById("infoModalBody").textContent = JSON.stringify(data, null, 2);
+        //         infoModal.show();
+        //     } catch (err) {
+        //         console.error(err);
+        //         alert("Ошибка: " + err.message);
+        //     }
+        // });
 
         logoutBtn.addEventListener("click", function () {
             localStorage.removeItem("access_token");
@@ -528,6 +656,11 @@
 
         updateUI();
         loadDocuments();
+
+        document.getElementById("tab2-tab").addEventListener("click", () => {
+            loadCollections();
+        });
+
 
     });
 

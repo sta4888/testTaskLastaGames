@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from models.database import get_db
+from models.models import WordStat
 from repositories.processed_file import ProcessedFileRepository
 from repositories.word_stat import WordStatRepository
 from schemas.document import DocumentListItem, DocumentResult, MessageResponse
@@ -60,5 +61,9 @@ def delete_document(document_id: int, current_user=Depends(UserService.get_curre
     doc = repo.get(document_id)
     if not doc or doc.owner_id != current_user.id:
         raise HTTPException(status_code=404, detail="Document not found")
+
+    db.query(WordStat).filter(WordStat.file_id == doc.file_id).delete()
+
     repo.delete(document_id)
+    db.commit()
     return MessageResponse(message="Document deleted")

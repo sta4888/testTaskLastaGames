@@ -9,7 +9,7 @@ from os.path import dirname, abspath
 
 sys.path.insert(0, dirname(dirname(abspath(__file__))))
 
-from models.database import  Base
+from models.database import Base
 from models.models import ProcessedFile
 
 
@@ -25,6 +25,7 @@ url = os.getenv("DATABASE_URL")
 config.set_main_option("sqlalchemy.url", url)
 
 target_metadata = Base.metadata
+
 
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode.
@@ -56,9 +57,7 @@ def run_migrations_online() -> None:
     )
 
     with connectable.connect() as connection:
-        context.configure(
-            connection=connection, target_metadata=target_metadata
-        )
+        context.configure(connection=connection, target_metadata=target_metadata)
 
         with context.begin_transaction():
             context.run_migrations()
