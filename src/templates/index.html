@@ -42,6 +42,44 @@
     </div>
 </div>
 
+<!--Табы-->
+<div id="tabs-section" style="display: none;">
+    <ul class="nav nav-tabs" id="mainTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="tab1-tab" data-bs-toggle="tab" data-bs-target="#tab1"
+                    type="button" role="tab" aria-controls="tab1" aria-selected="true">Документы
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tab2-tab" data-bs-toggle="tab" data-bs-target="#tab2"
+                    type="button" role="tab" aria-controls="tab2" aria-selected="false">Коллекции
+            </button>
+        </li>
+    </ul>
+    <div class="tab-content pt-3" id="mainTabsContent">
+        <div class="tab-pane fade show active" id="tab1" role="tabpanel" aria-labelledby="tab1-tab">
+            <div class="row">
+                <div class="col-md-4">
+                    <ul id="document-list" class="list-group">
+                        <!-- Документы будут подставлены сюда -->
+                    </ul>
+                </div>
+                <div class="col-md-8">
+                    <div id="document-details">
+                        <p>Выберите документ, чтобы увидеть подробности.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="tab2" role="tabpanel" aria-labelledby="tab2-tab">
+            <p>Контент вкладки "Коллекции"</p>
+        </div>
+    </div>
+</div>
+
+
+<!--Табы конец-->
 <!-- Модальное окно для входа -->
 <div class="modal modal-blur fade" id="loginModal" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered" role="document">
@@ -145,16 +183,153 @@
         const unauthSection = document.getElementById("unauth-section");
         const authSection = document.getElementById("auth-section");
         const loginStatus = document.getElementById("login-status");
+        const tabsSection = document.getElementById("tabs-section");
 
         function updateUI() {
+
+
             if (accessToken) {
                 unauthSection.style.display = "none";
                 authSection.style.display = "block";
+                if (tabsSection) tabsSection.style.display = "block";
             } else {
                 unauthSection.style.display = "block";
                 authSection.style.display = "none";
+                if (tabsSection) tabsSection.style.display = "none";
             }
         }
+
+        async function loadDocuments() {
+            const documentList = document.getElementById("document-list");
+            const details = document.getElementById("document-details");
+
+            documentList.innerHTML = "<li class='list-group-item'>Загрузка...</li>";
+
+            try {
+                const res = await fetch("/api/v2/documents/", {
+                    headers: {
+                        "Authorization": `Bearer ${accessToken}`,
+                    }
+                });
+
+                if (!res.ok) throw new Error("Ошибка при загрузке документов");
+
+                const data = await res.json();
+                if (data.length === 0) {
+                    documentList.innerHTML = "<li class='list-group-item'>Нет документов</li>";
+                    return;
+                }
+
+                documentList.innerHTML = "";
+                data.forEach(doc => {
+                    const li = document.createElement("li");
+                    li.className = "list-group-item d-flex justify-content-between align-items-center";
+
+                    // Текст + обработка клика
+                    const title = document.createElement("span");
+                    title.textContent = doc.name;
+                    title.style.cursor = "pointer";
+                    title.onclick = () => showDocumentDetails(doc.id, doc.name);
+
+                    // Кнопка удаления
+                    const deleteBtn = document.createElement("button");
+                    deleteBtn.className = "btn btn-sm btn-danger";
+                    deleteBtn.textContent = "Удалить";
+                    deleteBtn.onclick = async (e) => {
+                        e.stopPropagation();
+                        if (confirm(`Удалить документ "${doc.name}"?`)) {
+                            await deleteDocument(doc.id);
+                        }
+                    };
+
+                    li.appendChild(title);
+                    li.appendChild(deleteBtn);
+                    documentList.appendChild(li);
+                });
+
+            } catch (err) {
+                documentList.innerHTML = `<li class='list-group-item text-danger'>Ошибка: ${err.message}</li>`;
+            }
+        }
+
+        async function showDocumentDetails(id, name) {
+            const details = document.getElementById("document-details");
+            details.innerHTML = "<p>Загрузка...</p>";
+
+            try {
+                // Параллельный запрос содержимого и статистики
+                const [contentRes, statsRes] = await Promise.all([
+                    fetch(`/api/v2/documents/${id}`, {
+                        headers: {"Authorization": `Bearer ${accessToken}`}
+                    }),
+                    fetch(`/api/v2/documents/${id}/statistics`, {
+                        headers: {"Authorization": `Bearer ${accessToken}`}
+                    })
+                ]);
+
+                if (!contentRes.ok) throw new Error("Ошибка при получении содержимого");
+                if (!statsRes.ok) throw new Error("Ошибка при получении статистики");
+
+                const contentData = await contentRes.json();
+                const statsData = await statsRes.json();
+
+                // Отобразим содержимое и статистику
+                details.innerHTML = `
+            <h5>${name}</h5>
+            <p><strong>Количество строк:</strong> ${contentData.lines_count}</p>
+            <h6>Содержимое:</h6>
+            <pre style="background: #f5f5f5; padding: 1em; border-radius: 5px;">${escapeHTML(contentData.text)}</pre>
+            <h6 class="mt-3">Статистика:</h6>
+            <table class="table table-sm">
+                <thead><tr><th>Слово</th><th>TF</th><th>IDF</th></tr></thead>
+                <tbody>
+                    ${statsData.map(row => `
+                        <tr>
+                            <td>${row.word}</td>
+                            <td>${row.tf.toFixed(3)}</td>
+                            <td>${row.idf.toFixed(3)}</td>
+                        </tr>
+                    `).join("")}
+                </tbody>
+            </table>
+        `;
+            } catch (err) {
+                details.innerHTML = `<p class="text-danger">Ошибка: ${err.message}</p>`;
+            }
+        }
+
+        async function deleteDocument(id) {
+            try {
+                const res = await fetch(`/api/v2/documents/${id}`, {
+                    method: "DELETE",
+                    headers: {
+                        "Authorization": `Bearer ${accessToken}`,
+                    }
+                });
+
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || "Ошибка при удалении документа");
+
+                alert("Документ удалён");
+                await loadDocuments(); // Перезагрузить список
+                document.getElementById("document-details").innerHTML = "<p>Выберите документ, чтобы увидеть подробности.</p>";
+            } catch (err) {
+                alert("Ошибка: " + err.message);
+            }
+        }
+
+        function escapeHTML(text) {
+            return text.replace(/[&<>"']/g, function (m) {
+                return ({
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#039;'
+                })[m];
+            });
+        }
+
 
         // Инициализация модальных окон
         const loginModal = new bootstrap.Modal(document.getElementById('loginModal'));
@@ -309,7 +484,7 @@
             }
         });
 
-        logoutBtn.addEventListener("click", function() {
+        logoutBtn.addEventListener("click", function () {
             localStorage.removeItem("access_token");
             window.location.reload(); // Перезагрузка страницы после выхода
         });
@@ -327,20 +502,24 @@
             }
         }
 
-        statusBtn.addEventListener("click", function() {
+        statusBtn.addEventListener("click", function () {
             fetchData("/api/v2/status", "Статус");
         });
 
-        versionBtn.addEventListener("click", function() {
+        versionBtn.addEventListener("click", function () {
             fetchData("/api/v2/version", "Версия");
         });
 
-        metricsBtn.addEventListener("click", function() {
+        metricsBtn.addEventListener("click", function () {
             fetchData("/api/v2/metrics", "Метрики");
         });
 
         updateUI();
+        loadDocuments();
+
     });
+
+
 </script>
 </body>
 </html>
