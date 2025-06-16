@@ -28,7 +28,9 @@ def build_huffman_tree(text):
     return nodes[0]
 
 
-def get_codes(node, prefix="", code_map={}):
+def get_codes(node, prefix="", code_map=None):
+    if code_map is None:
+        code_map = {}
     if node:
         if node.char is not None:
             code_map[node.char] = prefix
