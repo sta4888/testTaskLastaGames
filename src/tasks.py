@@ -1,4 +1,4 @@
-from dfidf import Df_Idf
+from utils.dfidf import Df_Idf
 from models.models import Collection
 from repositories.processed_file import ProcessedFileRepository
 from models.database import SessionLocal

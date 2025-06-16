@@ -7,9 +7,10 @@ from models.database import get_db
 from models.models import WordStat
 from repositories.processed_file import ProcessedFileRepository
 from repositories.word_stat import WordStatRepository
-from schemas.document import DocumentListItem, DocumentResult, MessageResponse
+from schemas.document import DocumentListItem, DocumentResult, MessageResponse, DocumentHuffmanResult
 from schemas.schemas import TermResponse
 from services.user import UserService
+from utils.haffman import build_huffman_tree, get_codes, encode
 
 router = APIRouter(prefix="/documents")
 
@@ -36,7 +37,6 @@ def get_document(document_id: int, current_user=Depends(UserService.get_current_
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error reading file: {str(e)}")
 
-    print(doc.result)
     return DocumentResult(
         lines_count=doc.result.get("lines_count"),
         text=file_text
@@ -67,3 +67,34 @@ def delete_document(document_id: int, current_user=Depends(UserService.get_curre
     repo.delete(document_id)
     db.commit()
     return MessageResponse(message="Document deleted")
+
+
+@router.get(
+    "/{document_id}/huffman",
+    response_model=DocumentHuffmanResult,
+    summary=" получить содержимое документа, закодированное Кодом Хаффмана"
+)
+def get_document_huffman(
+        document_id: int,
+        current_user=Depends(UserService.get_current_user),
+        db: Session = Depends(get_db)
+):
+    repo = ProcessedFileRepository(db)
+    doc = repo.get(document_id)
+    if not doc or doc.owner_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    try:
+        with open(doc.file_path, "r", encoding="utf-8") as f:
+            file_text = f.read()
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="File not found on disk")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error reading file: {str(e)}")
+
+    tree = build_huffman_tree(file_text)
+    codes = get_codes(tree)
+    encoded = encode(file_text, codes)
+    return DocumentHuffmanResult(
+        text=encoded
+    )

@@ -15,7 +15,8 @@ class DocumentResult(BaseModel):
     lines_count: Optional[int]
     text: str
 
-
+class DocumentHuffmanResult(BaseModel):
+    text: str
 
 
 class MessageResponse(BaseModel):
