@@ -275,24 +275,36 @@
 
                 // Отобразим содержимое и статистику
                 details.innerHTML = `
-            <h5>${name}</h5>
-            <p><strong>Количество строк:</strong> ${contentData.lines_count}</p>
-            <h6>Содержимое:</h6>
-            <pre style="background: #f5f5f5; padding: 1em; border-radius: 5px;">${escapeHTML(contentData.text)}</pre>
-            <h6 class="mt-3">Статистика:</h6>
-            <table class="table table-sm">
-                <thead><tr><th>Слово</th><th>TF</th><th>IDF</th></tr></thead>
-                <tbody>
-                    ${statsData.map(row => `
-                        <tr>
-                            <td>${row.word}</td>
-                            <td>${row.tf.toFixed(3)}</td>
-                            <td>${row.idf.toFixed(3)}</td>
-                        </tr>
-                    `).join("")}
-                </tbody>
-            </table>
-        `;
+                    <h5>${name}</h5>
+                    <div class="row">
+                        <!-- Левая колонка: Статистика -->
+                        <div class="col-md-5">
+                            <h6>Статистика:</h6>
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr><th>Слово</th><th>TF</th><th>IDF</th></tr>
+                                </thead>
+                                <tbody>
+                                    ${statsData.map(row => `
+                                        <tr>
+                                            <td>${row.word}</td>
+                                            <td>${row.tf.toFixed(3)}</td>
+                                            <td>${row.idf.toFixed(3)}</td>
+                                        </tr>
+                                    `).join("")}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Правая колонка: Содержимое -->
+                        <div class="col-md-7">
+                            <p><strong>Количество строк:</strong> ${contentData.lines_count}</p>
+                            <h6>Содержимое:</h6>
+                            <pre style="background: #f5f5f5; padding: 1em; border-radius: 5px; max-height: 400px; overflow-y: auto;">${escapeHTML(contentData.text)}</pre>
+                        </div>
+                    </div>
+                `;
+
             } catch (err) {
                 details.innerHTML = `<p class="text-danger">Ошибка: ${err.message}</p>`;
             }
