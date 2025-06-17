@@ -15,6 +15,10 @@ V 0.1.1
 
 
 ## Описание структуры проекта
+
+<details>
+<summary>Дерево проекта</summary>
+
 ```
 testTaskLastaGames/
 │
@@ -60,6 +64,9 @@ testTaskLastaGames/
 ├── setup.cfg                 # Файл установки настроек линтеров
 └── README.md
 ```
+</details>
+
+
 
 
 ## Конфигурируемые параметры
@@ -192,4 +199,8 @@ main.py
 - разделил endpoints по отдельным модулям
 
 ```
+
+
+## Структура таблиц сущностей в БД
+![plot](./imgs/models.png)
 
