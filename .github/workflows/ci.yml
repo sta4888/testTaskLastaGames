@@ -10,6 +10,7 @@ jobs:
 
     - name: Set up Docker Compose
       run: |
+        cp .env.sample .env
         docker compose up -d
         docker compose ps
 
