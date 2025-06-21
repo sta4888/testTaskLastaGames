@@ -204,3 +204,34 @@ main.py
 ## Структура таблиц сущностей в БД
 ![plot](./imgs/models.png)
 
+1. Миграции лучше стараться называть максимально коротко и ясно, ну и желательно сохранять историю миграций, а не удалять при пуше (ну тут от ситуации, если сток продукт выкладывать то ок, если пушить проект и везти его, то оставлять)
+
+2. В файле алембика env.py почитай про надстройку compare_server_default=True, в этом проекте не сильно важно, но в будущем может пригодиться
+
+3. При регистрации не валидируешь ни пароль ни мыло, т.е. пользователь может все что угодно вводить
+
+4 .В readme не правильно указана команда docker-compose build, в оригинале при установке на вм, необходимо добавить sudo или добавить пользователя в группу docker ```sudo usermod -aG docker $USER```
+
+5. Не совсем понял зачем нужно прописывать вручную накат миграций, если ты это можешь делать сразу при развертывании контейнера app
+
+6. Также при создании миграций, нужно заходить в контейнер с приложением создавать директорию с файлами для асинхронных миграций, хотя это можно сделать в самой DSN строке при прокидовании ее в конфигурационном файле alembic с добавлением строки "?async_fallback=True" к основному DSN
+
+7. По твоему readme не билдится контейнера, падают с ошибкой на 5 шаге:
+
+Purging configuration files for libsasl2-modules:amd64 (2.1.28+dfsg-10) ...
+Purging configuration files for libldap-common (2.5.13+dfsg-5) ...
+Purging configuration files for libfakeroot:amd64 (1.31-1.2) ...
+Purging configuration files for dirmngr (2.2.40-1.1) ...
+Purging configuration files for fonts-dejavu-core (2.37-6) ...
+Removing intermediate container 27f4b96354e9
+ ---> b28f8b1318d5
+Step 4/9 : COPY ./requirements.txt ./setup.cfg ./black.toml ./.pylintrc /
+ ---> a4227bbe07cb
+Step 5/9 : RUN --mount=type=cache,target=/root/.cache/pip     pip install --upgrade pip -r /requirements.txt
+the --mount option requires BuildKit. Refer to https://docs.docker.com/go/buildkit/ to learn how to build images with BuildKit enabled
+ERROR: Service 'lesta-games-app' failed to build : Build failed
+
+в общем я бы доработал readme более подробно.
+
+Обрати внимание на Changelog и как ты его ведешь, мне понравилась [статья](https://www.conventionalcommits.org/ru/v1.0.0/) и я ее придерживался
+
